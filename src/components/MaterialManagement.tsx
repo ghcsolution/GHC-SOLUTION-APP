@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -8,11 +8,13 @@ import {
   Check,
   Loader2,
   Package,
-  UploadCloud
+  UploadCloud,
+  FileSpreadsheet
 } from 'lucide-react';
 import { MasterMaterial } from '../types/inventory';
 import { equipmentBase } from '../constants/equipment';
 import { motion, AnimatePresence } from 'motion/react';
+import Papa from 'papaparse';
 
 interface MaterialManagementProps {
   materials: MasterMaterial[];
@@ -40,11 +42,18 @@ export default function MaterialManagement({
   const [editMaterial, setEditMaterial] = useState({ modelo: '', codigoFornecedor: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredMaterials = materials.filter(m => 
     m.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.codigoFornecedor.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedMaterials = filteredMaterials.slice(startIndex, startIndex + itemsPerPage);
 
   const handleAdd = async () => {
     if (!newMaterial.modelo) return;
@@ -83,6 +92,51 @@ export default function MaterialManagement({
     }
   };
 
+  const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse(file, {
+      complete: async (results) => {
+        try {
+          // Filter out header and empty rows
+          const data = results.data as string[][];
+          const materialsToImport: Omit<MasterMaterial, 'id'>[] = data
+            .filter((row, index) => {
+              if (index === 0) return false; // Skip header
+              return row.length >= 2 && row[0] && row[1];
+            })
+            .map(row => ({
+              codigoFornecedor: row[0].trim(),
+              modelo: row[1].trim()
+            }));
+
+          if (materialsToImport.length === 0) {
+            alert('Nenhum dado válido encontrado no arquivo.');
+            return;
+          }
+
+          if (confirm(`Deseja importar ${materialsToImport.length} materiais do arquivo CSV?`)) {
+            await onImportBase(materialsToImport);
+            alert('Importação concluída com sucesso!');
+          }
+        } catch (error) {
+          console.error(error);
+          alert('Erro ao processar arquivo CSV.');
+        } finally {
+          setIsImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      },
+      error: (error) => {
+        console.error(error);
+        alert('Erro ao ler arquivo CSV.');
+        setIsImporting(false);
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -97,6 +151,25 @@ export default function MaterialManagement({
           />
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleCsvUpload}
+                accept=".csv"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+              >
+                {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                Importar CSV
+              </button>
+            </>
+          )}
           {canEdit && materials.length === 0 && (
             <button
               onClick={handleImport}
@@ -178,7 +251,7 @@ export default function MaterialManagement({
                 )}
               </AnimatePresence>
 
-              {filteredMaterials.map((material) => (
+              {paginatedMaterials.map((material) => (
                 <tr key={material.id} className="group hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     {editingId === material.id ? (
@@ -275,6 +348,61 @@ export default function MaterialManagement({
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-4">
+          <p className="text-sm text-gray-500 font-medium">
+            Mostrando <span className="text-gray-900">{startIndex + 1}</span> a <span className="text-gray-900">{Math.min(startIndex + itemsPerPage, filteredMaterials.length)}</span> de <span className="text-gray-900">{filteredMaterials.length}</span> materiais
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+            >
+              Anterior
+            </button>
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Show first, last, and pages around current
+                if (
+                  pageNum === 1 || 
+                  pageNum === totalPages || 
+                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-10 h-10 text-sm font-bold rounded-xl transition-all ${
+                        currentPage === pageNum 
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                } else if (
+                  pageNum === currentPage - 2 || 
+                  pageNum === currentPage + 2
+                ) {
+                  return <span key={pageNum} className="text-gray-400">...</span>;
+                }
+                return null;
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

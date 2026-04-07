@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "A record of stored equipment at a specific site.",
+      "type": "object",
+      "properties": {
+        "site": { "type": "string", "description": "Site identifier" },
+        "cidade": { "type": "string", "description": "City" },
+        "obs": { "type": "string", "description": "Observations" },
+        "local_armazenamento": { "type": "string", "description": "Storage location" },
+        "responsavel_entrega": { "type": "string", "description": "Person responsible for delivery" },
+        "responsavel_recebimento": { "type": "string", "description": "Person responsible for receiving" },
+        "data_entrada": { "type": "string", "format": "date", "description": "Entry date" },
+        "responsavel_coleta": { "type": "string", "description": "Person responsible for collection" },
+        "responsavel_liberacao": { "type": "string", "description": "Person responsible for release" },
+        "data_saida": { "type": "string", "format": "date", "description": "Exit date" },
+        "materiais": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "qtde": { "type": "number" },
+              "modelo": { "type": "string" },
+              "codigoFornecedor": { "type": "string" }
+            }
+          }
+        },
+        "fotos_romaneio": {
+          "type": "array",
+          "items": { "type": "string", "description": "Base64 encoded photo data" }
+        },
+        "createdBy": { "type": "string", "description": "UID of the user who created the record" },
+        "updatedBy": { "type": "string", "description": "UID of the user who last updated the record" }
+      },
+      "required": ["site", "cidade", "data_entrada", "materiais"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile with role-based permissions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "editor", "viewer"] }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "VistoriaRF": {
+      "title": "Vistoria RF",
+      "description": "Registros de vistorias RF com fotos de fachada e placa",
+      "type": "object",
+      "properties": {
+        "site": { "type": "string" },
+        "data": { "type": "string", "format": "date" },
+        "detentora": { "type": "string" },
+        "id_detentora": { "type": "string" },
+        "regional": { "type": "string" },
+        "tipo_site": { "type": "string" },
+        "infra": { "type": "string" },
+        "latitude": { "type": "string" },
+        "longitude": { "type": "string" },
+        "altitude": { "type": "string" },
+        "altura_torre": { "type": "string" },
+        "uf": { "type": "string" },
+        "municipio": { "type": "string" },
+        "endereco": { "type": "string" },
+        "numero": { "type": "string" },
+        "bairro": { "type": "string" },
+        "foto_fachada": { "type": "string", "description": "Base64 encoded photo" },
+        "foto_placa": { "type": "string", "description": "Base64 encoded photo" },
+        "photos": { 
+          "type": "object", 
+          "description": "Map of additional photos indexed by field ID",
+          "additionalProperties": { "type": "string" }
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["site", "data", "createdBy"]
+    },
+    "MasterMaterial": {
+      "title": "Master Material",
+      "description": "A material definition for the equipment database.",
+      "type": "object",
+      "properties": {
+        "modelo": { "type": "string" },
+        "codigoFornecedor": { "type": "string" }
+      },
+      "required": ["modelo", "codigoFornecedor"]
+    }
+  },
+  "firestore": {
+    "/inventory": {
+      "schema": "InventoryItem",
+      "description": "Collection of inventory records."
+    },
+    "/users": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles and permissions."
+    },
+    "/vistorias_rf": {
+      "schema": "VistoriaRF",
+      "description": "Collection of RF inspections with site photos."
+    },
+    "/materias": {
+      "schema": "MasterMaterial",
+      "description": "Collection of equipment materials for inventory selection."
+    }
+  }
+}

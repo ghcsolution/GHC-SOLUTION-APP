@@ -1,0 +1,5 @@
+{
+  "name": "GHC Solutions",
+  "description": "Sistema completo de controle de armazenamento com CRUD, relatórios e gestão de permissões de usuários.",
+  "requestFramePermissions": []
+}

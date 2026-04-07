@@ -1,0 +1,178 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string
+    //   - role: string (admin, editor, viewer) (required)
+    //
+    // Collection: inventory
+    // Fields:
+    //   - site: string (required)
+    //   - cidade: string (required)
+    //   - obs: string
+    //   - local_armazenamento: string
+    //   - responsavel_entrega: string
+    //   - responsavel_recebimento: string
+    //   - data_entrada: string (required)
+    //   - responsavel_coleta: string
+    //   - responsavel_liberacao: string
+    //   - data_saida: string
+    //   - materiais: array of objects (required)
+    //   - fotos_romaneio: array of strings (max 12)
+    //   - createdBy: string
+    //   - updatedBy: string
+    //
+    // Collection: vistorias_rf
+    // Document ID: auto-generated
+    // Fields:
+    //   - site: string (required)
+    //   - data: string (required, date format)
+    //   - detentora: string
+    //   - id_detentora: string
+    //   - regional: string
+    //   - tipo_site: string
+    //   - infra: string
+    //   - latitude: string
+    //   - longitude: string
+    //   - altitude: string
+    //   - altura_torre: string
+    //   - uf: string
+    //   - municipio: string
+    //   - endereco: string
+    //   - numero: string
+    //   - bairro: string
+    //   - foto_fachada: string (base64)
+    //   - foto_placa: string (base64)
+    //   - createdBy: string
+    //   - updatedBy: string
+    //
+    // Collection: materias
+    // Fields:
+    //   - modelo: string (required)
+    //   - codigoFornecedor: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
+    }
+
+    function getRole() {
+      let data = getUserData();
+      return data != null ? data.role : 'none';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        getRole() == 'admin' || 
+        (request.auth.token.email == "ghcampos1985@gmail.com" && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'password'))
+      );
+    }
+
+    function isEditor() {
+      return isAuthenticated() && (getRole() == 'editor' || isAdmin());
+    }
+
+    function isViewer() {
+      return isAuthenticated() && (getRole() == 'viewer' || isEditor());
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['admin', 'editor', 'viewer'];
+    }
+
+    function isValidVistoria(data) {
+      return data.keys().hasAll(['site', 'data', 'createdBy']) &&
+             data.site is string && data.site.size() < 50 &&
+             data.data is string &&
+             (!('detentora' in data) || (data.detentora is string && data.detentora.size() < 100)) &&
+             (!('id_detentora' in data) || (data.id_detentora is string && data.id_detentora.size() < 100)) &&
+             (!('regional' in data) || (data.regional is string && data.regional.size() < 100)) &&
+             (!('tipo_site' in data) || (data.tipo_site is string && data.tipo_site.size() < 100)) &&
+             (!('infra' in data) || (data.infra is string && data.infra.size() < 100)) &&
+             (!('latitude' in data) || (data.latitude is string && data.latitude.size() < 100)) &&
+             (!('longitude' in data) || (data.longitude is string && data.longitude.size() < 100)) &&
+             (!('altitude' in data) || (data.altitude is string && data.altitude.size() < 100)) &&
+             (!('altura_torre' in data) || (data.altura_torre is string && data.altura_torre.size() < 100)) &&
+             (!('uf' in data) || (data.uf is string && data.uf.size() <= 2)) &&
+             (!('municipio' in data) || (data.municipio is string && data.municipio.size() < 200)) &&
+             (!('endereco' in data) || (data.endereco is string && data.endereco.size() < 500)) &&
+             (!('numero' in data) || (data.numero is string && data.numero.size() < 50)) &&
+             (!('bairro' in data) || (data.bairro is string && data.bairro.size() < 200)) &&
+             (!('foto_fachada' in data) || (data.foto_fachada is string && data.foto_fachada.size() < 1000000)) &&
+             (!('foto_placa' in data) || (data.foto_placa is string && data.foto_placa.size() < 1000000)) &&
+             (!('photos' in data) || (data.photos is map && data.photos.size() <= 200));
+    }
+
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['site', 'cidade', 'data_entrada', 'materiais']) &&
+             data.site is string && data.site.size() < 100 &&
+             data.cidade is string && data.cidade.size() < 100 &&
+             data.materiais is list && data.materiais.size() < 50 &&
+             (!('fotos_romaneio' in data) || (data.fotos_romaneio is list && data.fotos_romaneio.size() <= 12));
+    }
+
+    function isValidMasterMaterial(data) {
+      return data.keys().hasAll(['modelo', 'codigoFornecedor']) &&
+             data.modelo is string && data.modelo.size() > 0 && data.modelo.size() < 200 &&
+             data.codigoFornecedor is string && data.codigoFornecedor.size() > 0 && data.codigoFornecedor.size() < 100;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data) && 
+                    (request.resource.data.role in ['viewer', 'editor'] || isAdmin());
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isViewer();
+      allow create: if isEditor() && isValidInventoryItem(request.resource.data);
+      allow update: if isEditor() && isValidInventoryItem(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /vistorias_rf/{vistoriaId} {
+      allow read: if isViewer();
+      allow create: if isEditor() && isValidVistoria(request.resource.data);
+      allow update: if isEditor() && isValidVistoria(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /materias/{materialId} {
+      allow read: if isViewer();
+      allow create: if isEditor() && isValidMasterMaterial(request.resource.data);
+      allow update: if isEditor() && isValidMasterMaterial(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

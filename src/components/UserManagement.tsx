@@ -10,9 +10,16 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { UserProfile, UserRole } from '../types/inventory';
+import { UserProfile, UserRole, UserPermissions } from '../types/inventory';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
-import { Shield, User as UserIcon, Mail, CheckCircle2, Trash2 } from 'lucide-react';
+import { Shield, User as UserIcon, Mail, CheckCircle2, Trash2, Clock } from 'lucide-react';
+
+interface Invite {
+  email: string;
+  role: UserRole;
+  permissions: UserPermissions;
+  status: string;
+}
 
 interface UserManagementProps {
   currentUser: User;
@@ -21,6 +28,7 @@ interface UserManagementProps {
 
 export default function UserManagement({ currentUser, searchTerm }: UserManagementProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, 'users'), orderBy('email'));
@@ -32,9 +40,49 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
       setUsers(usersData);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'users', currentUser));
 
-    return () => unsubscribe();
+    const qInvites = query(collection(db, 'invites'), orderBy('email'));
+    const unsubscribeInvites = onSnapshot(qInvites, (snapshot) => {
+      const invitesData: Invite[] = [];
+      snapshot.forEach((doc) => {
+        invitesData.push(doc.data() as Invite);
+      });
+      setInvites(invitesData);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'invites', currentUser));
+
+    return () => {
+      unsubscribe();
+      unsubscribeInvites();
+    };
   }, []);
 
+  const handleDeleteInvite = async (email: string) => {
+    if (!window.confirm("Remover este convite?")) return;
+    try {
+      await deleteDoc(doc(db, 'invites', email));
+    } catch (error) {
+      console.error("Erro ao excluir convite:", error);
+    }
+  };
+
+  const handlePermissionChange = async (uid: string, feature: keyof UserPermissions, value: boolean) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const user = users.find(u => u.uid === uid);
+      if (!user) return;
+      
+      const newPermissions = {
+        inventario: user.permissions?.inventario ?? true,
+        vistoria: user.permissions?.vistoria ?? true,
+        materiais: user.permissions?.materiais ?? true,
+        ...user.permissions,
+        [feature]: value
+      };
+      
+      await updateDoc(userRef, { permissions: newPermissions });
+    } catch (error) {
+      console.error("Erro ao alterar permissão:", error);
+    }
+  };
   const handleRoleChange = async (uid: string, newRole: UserRole) => {
     if (uid === currentUser.uid) {
       alert("Você não pode alterar sua própria permissão.");
@@ -81,10 +129,14 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Usuário</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Permissão</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Inventário</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Vistoria RF</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Materiais</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
+              {/* Active Users */}
               {filteredUsers.map((user) => (
                 <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-6">
@@ -113,6 +165,33 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       <option value="admin">Administrador</option>
                     </select>
                   </td>
+                  <td className="px-6 py-6 text-center">
+                    <input 
+                      type="checkbox"
+                      checked={user.role === 'admin' || (user.permissions?.inventario ?? true)}
+                      disabled={user.uid === currentUser.uid || user.role === 'admin'}
+                      onChange={(e) => handlePermissionChange(user.uid, 'inventario', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                    />
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <input 
+                      type="checkbox"
+                      checked={user.role === 'admin' || (user.permissions?.vistoria ?? true)}
+                      disabled={user.uid === currentUser.uid || user.role === 'admin'}
+                      onChange={(e) => handlePermissionChange(user.uid, 'vistoria', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                    />
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <input 
+                      type="checkbox"
+                      checked={user.role === 'admin' || (user.permissions?.materiais ?? true)}
+                      disabled={user.uid === currentUser.uid || user.role === 'admin'}
+                      onChange={(e) => handlePermissionChange(user.uid, 'materiais', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                    />
+                  </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center justify-between gap-4">
                       {user.uid === currentUser.uid ? (
@@ -135,6 +214,55 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                           </button>
                         </div>
                       )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {/* Pending Invites */}
+              {invites.filter(inv => !users.some(u => u.email === inv.email)).map((invite) => (
+                <tr key={invite.email} className="bg-amber-50/30 hover:bg-amber-50/50 transition-colors">
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">Aguardando Login</p>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                          <Mail className="w-3 h-3" />
+                          {invite.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase">
+                      {invite.role === 'admin' ? 'Admin' : invite.role === 'editor' ? 'Editor' : 'Visitante'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.inventario ? 'bg-green-500' : 'bg-gray-200'}`} />
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.vistoria ? 'bg-green-500' : 'bg-gray-200'}`} />
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.materiais ? 'bg-green-500' : 'bg-gray-200'}`} />
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600">
+                        <Clock className="w-4 h-4" />
+                        Pendente
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteInvite(invite.email)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                        title="Remover Convite"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>

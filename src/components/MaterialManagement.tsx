@@ -21,6 +21,7 @@ interface MaterialManagementProps {
   onDelete: (id: string) => Promise<void>;
   onImportBase: (materials: Omit<MasterMaterial, 'id'>[]) => Promise<void>;
   canEdit: boolean;
+  canDelete: boolean;
 }
 
 export default function MaterialManagement({ 
@@ -29,7 +30,8 @@ export default function MaterialManagement({
   onUpdate, 
   onDelete,
   onImportBase,
-  canEdit
+  canEdit,
+  canDelete
 }: MaterialManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -241,16 +243,18 @@ export default function MaterialManagement({
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Tem certeza que deseja excluir este material?')) {
-                                  onDelete(material.id!);
-                                }
-                              }}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('Tem certeza que deseja excluir este material?')) {
+                                    onDelete(material.id!);
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

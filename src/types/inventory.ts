@@ -55,9 +55,16 @@ export interface VistoriaRF {
 
 export type UserRole = 'admin' | 'editor' | 'viewer';
 
+export interface UserPermissions {
+  inventario: boolean;
+  vistoria: boolean;
+  materiais: boolean;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
   role: UserRole;
+  permissions?: UserPermissions;
 }

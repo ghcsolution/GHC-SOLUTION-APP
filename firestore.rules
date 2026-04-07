@@ -82,7 +82,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         getRole() == 'admin' || 
-        (request.auth.token.email == "ghcampos1985@gmail.com" && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'password'))
+        (request.auth.token.email.lower() == "ghcampos1985@gmail.com" || request.auth.token.email.lower() == "halanarib@gmail.com")
       );
     }
 
@@ -94,11 +94,21 @@ service cloud.firestore {
       return isAuthenticated() && (getRole() == 'viewer' || isEditor());
     }
 
+    function hasPermission(feature) {
+      let data = getUserData();
+      return data != null && (
+        data.role == 'admin' || 
+        (data.permissions != null && data.permissions[feature] == true) ||
+        (data.permissions == null) // Backward compatibility
+      );
+    }
+
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'role']) &&
              data.uid is string &&
              data.email is string &&
-             data.role in ['admin', 'editor', 'viewer'];
+             data.role in ['admin', 'editor', 'viewer'] &&
+             (!('permissions' in data) || (data.permissions is map && data.permissions.keys().hasAll(['inventario', 'vistoria', 'materiais'])));
     }
 
     function isValidVistoria(data) {
@@ -150,24 +160,29 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /invites/{email} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
+      allow write: if isAdmin();
+    }
+
     match /inventory/{itemId} {
-      allow read: if isViewer();
-      allow create: if isEditor() && isValidInventoryItem(request.resource.data);
-      allow update: if isEditor() && isValidInventoryItem(request.resource.data);
+      allow read: if isViewer() && hasPermission('inventario');
+      allow create: if isEditor() && hasPermission('inventario') && isValidInventoryItem(request.resource.data);
+      allow update: if isEditor() && hasPermission('inventario') && isValidInventoryItem(request.resource.data);
       allow delete: if isAdmin();
     }
 
     match /vistorias_rf/{vistoriaId} {
-      allow read: if isViewer();
-      allow create: if isEditor() && isValidVistoria(request.resource.data);
-      allow update: if isEditor() && isValidVistoria(request.resource.data);
+      allow read: if isViewer() && hasPermission('vistoria');
+      allow create: if isEditor() && hasPermission('vistoria') && isValidVistoria(request.resource.data);
+      allow update: if isEditor() && hasPermission('vistoria') && isValidVistoria(request.resource.data);
       allow delete: if isAdmin();
     }
 
     match /materias/{materialId} {
-      allow read: if isViewer();
-      allow create: if isEditor() && isValidMasterMaterial(request.resource.data);
-      allow update: if isEditor() && isValidMasterMaterial(request.resource.data);
+      allow read: if isViewer() && hasPermission('materiais');
+      allow create: if isEditor() && hasPermission('materiais') && isValidMasterMaterial(request.resource.data);
+      allow update: if isEditor() && hasPermission('materiais') && isValidMasterMaterial(request.resource.data);
       allow delete: if isAdmin();
     }
 

@@ -57,6 +57,15 @@ export default function InventoryView({ item, onClose }: InventoryViewProps) {
                 <p className="text-sm text-gray-700">
                   <span className="font-medium">Saída:</span> {item.data_saida ? format(new Date(item.data_saida), 'dd/MM/yyyy', { locale: ptBR }) : 'Em aberto'}
                 </p>
+                <p className="text-xs font-bold text-indigo-600 mt-2">
+                  Tempo em depósito: {(() => {
+                    const start = new Date(item.data_entrada);
+                    const end = item.data_saida ? new Date(item.data_saida) : new Date();
+                    const diffTime = Math.abs(end.getTime() - start.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return `${diffDays} dias`;
+                  })()}
+                </p>
               </div>
             </div>
 

@@ -32,8 +32,23 @@ import {
   Settings,
   Camera,
   Loader2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CheckCircle2,
+  Clock,
+  Database
 } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import InventoryForm from './InventoryForm';
 import InventoryTable from './InventoryTable';
 import InventoryView from './InventoryView';
@@ -60,7 +75,9 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [vistorias, setVistorias] = useState<VistoriaRF[]>([]);
   const [materials, setMaterials] = useState<MasterMaterial[]>([]);
-  const [activeTab, setActiveTab] = useState<'inventory' | 'users' | 'vistoria' | 'materias'>('inventory');
+  const [activeTab, setActiveTab] = useState<'home' | 'inventory' | 'users' | 'vistoria' | 'materias'>(
+    'home'
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isVistoriaFormOpen, setIsVistoriaFormOpen] = useState(false);
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
@@ -73,6 +90,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleImportMasterMaterials = async (materialsToImport: Omit<MasterMaterial, 'id'>[]) => {
     if (!user?.uid) return;
@@ -243,6 +261,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
       await deleteDoc(doc(db, 'materias', id));
     } catch (error) {
       console.error("Erro ao excluir material:", error);
+      handleFirestoreError(error, OperationType.DELETE, `materias/${id}`, user);
     }
   };
 
@@ -534,35 +553,64 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
       for (const item of itemsToExport) {
         doc.addPage();
         doc.setFontSize(16);
-        doc.text(`Detalhes da Vistoria: ${item.site}`, 14, 20);
-        doc.setFontSize(12);
-        doc.text(`Data: ${item.data ? format(new Date(item.data), 'dd/MM/yyyy') : '-'}`, 14, 30);
+        doc.text(`Relatório de Vistoria: ${item.site}`, 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const infoY = 30;
+        doc.text(`Data: ${item.data ? format(new Date(item.data), 'dd/MM/yyyy') : '-'}`, 14, infoY);
+        doc.text(`Município/UF: ${item.municipio || '-'}/${item.uf || '-'}`, 14, infoY + 5);
+        doc.text(`Detentora: ${item.detentora || '-'} (${item.id_detentora || '-'})`, 14, infoY + 10);
+        doc.text(`Coordenadas: ${item.latitude || '-'}, ${item.longitude || '-'}`, 14, infoY + 15);
 
-        let currentY = 40;
+        let currentY = infoY + 25;
 
-        if (item.foto_fachada) {
-          doc.text('Foto 01 - Fachada:', 14, currentY);
-          try {
-            doc.addImage(item.foto_fachada, 'JPEG', 14, currentY + 5, 180, 100);
-            currentY += 115;
-          } catch (e) {
-            doc.text('[Erro ao carregar imagem da fachada]', 14, currentY + 10);
-            currentY += 20;
-          }
-        }
-
-        if (item.foto_placa) {
-          if (currentY > 150) {
+        // Main Photos (Fachada and Placa)
+        const addPhotoWithLabel = (label: string, photoData: string | undefined) => {
+          if (!photoData) return;
+          
+          if (currentY > 240) {
             doc.addPage();
             currentY = 20;
           }
-          doc.text('Foto 02 - Placa:', 14, currentY);
+          
+          doc.setFontSize(11);
+          doc.setTextColor(0);
+          doc.text(label, 14, currentY);
           try {
-            doc.addImage(item.foto_placa, 'JPEG', 14, currentY + 5, 180, 100);
+            // Simple check to avoid huge images crashing jspdf
+            doc.addImage(photoData, 'JPEG', 14, currentY + 5, 180, 100);
+            currentY += 115;
           } catch (e) {
-            doc.text('[Erro ao carregar imagem da placa]', 14, currentY + 10);
+            doc.text('[Erro ao processar imagem]', 14, currentY + 10);
+            currentY += 20;
           }
-        }
+        };
+
+        addPhotoWithLabel('Foto 01 - Fachada:', item.foto_fachada);
+        addPhotoWithLabel('Foto 02 - Placa:', item.foto_placa);
+
+        // Detailed Photos
+        VISTORIA_PHOTO_SECTIONS.forEach(section => {
+          const sectionPhotos = section.fields.filter(f => item.photos?.[f.id]);
+          if (sectionPhotos.length > 0) {
+            if (currentY > 260) {
+              doc.addPage();
+              currentY = 20;
+            }
+            doc.setFontSize(13);
+            doc.setTextColor(79, 70, 229); // Indigo
+            doc.text(section.title, 14, currentY);
+            currentY += 10;
+
+            sectionPhotos.forEach(field => {
+              const photo = item.photos?.[field.id];
+              if (photo) {
+                addPhotoWithLabel(field.label, photo);
+              }
+            });
+          }
+        });
       }
 
       doc.save(`vistorias_rf_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -574,57 +622,113 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
     }
   };
 
+  const openSites = items.filter(i => !i.data_saida);
+  const openSitesDays = openSites.map(item => {
+    const start = new Date(item.data_entrada);
+    const end = new Date();
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  });
+
+  const avgDays = openSitesDays.length > 0 
+    ? Math.round(openSitesDays.reduce((a, b) => a + b, 0) / openSitesDays.length) 
+    : 0;
+  const maxDays = openSitesDays.length > 0 ? Math.max(...openSitesDays) : 0;
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Package className="w-6 h-6 text-white" />
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0
+      `}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-bold text-xl tracking-tight">GHC Solutions</span>
           </div>
-          <span className="font-bold text-xl tracking-tight">GHC Solutions</span>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-2 text-gray-400 hover:text-gray-600"
+          >
+            <Plus className="w-6 h-6 rotate-45" />
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-4">
           <button
-            onClick={() => setActiveTab('inventory')}
+            onClick={() => { setActiveTab('home'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === 'inventory' 
+              activeTab === 'home' 
                 ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
             }`}
           >
             <LayoutDashboard className="w-5 h-5" />
-            Inventário
+            Dashboard
           </button>
 
-          <button
-            onClick={() => setActiveTab('vistoria')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === 'vistoria' 
-                ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-            }`}
-          >
-            <Camera className="w-5 h-5" />
-            Vistoria RF
-          </button>
+          {(profile.role === 'admin' || profile.permissions?.inventario) && (
+            <button
+              onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                activeTab === 'inventory' 
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              Inventário
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('materias')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === 'materias' 
-                ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-            }`}
-          >
-            <Package className="w-5 h-5" />
-            Materiais
-          </button>
+          {(profile.role === 'admin' || profile.permissions?.vistoria) && (
+            <button
+              onClick={() => { setActiveTab('vistoria'); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                activeTab === 'vistoria' 
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <Camera className="w-5 h-5" />
+              Vistoria RF
+            </button>
+          )}
+
+          {(profile.role === 'admin' || profile.permissions?.materiais) && (
+            <button
+              onClick={() => { setActiveTab('materias'); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                activeTab === 'materias' 
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <Package className="w-5 h-5" />
+              Materiais
+            </button>
+          )}
           
           {profile.role === 'admin' && (
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeTab === 'users' 
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
@@ -660,48 +764,44 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 bg-white border-bottom border-gray-200 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {activeTab === 'inventory' ? 'Controle de Materiais' : 
+        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shrink-0">
+          <div className="flex items-center gap-3 md:gap-4">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+            >
+              <Filter className="w-6 h-6" />
+            </button>
+            <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
+              {activeTab === 'home' ? 'Dashboard' :
+               activeTab === 'inventory' ? 'Materiais' : 
                activeTab === 'vistoria' ? 'Vistoria RF' : 
-               activeTab === 'materias' ? 'Cadastro de Materiais' : 'Gestão de Acessos'}
+               activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
             </h2>
-            <div className="h-6 w-px bg-gray-200 mx-2" />
-            <div className="relative hidden sm:block">
+            <div className="h-6 w-px bg-gray-200 mx-1 md:mx-2 hidden sm:block" />
+            <div className="relative hidden lg:block">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text"
-                placeholder="Buscar site, cidade ou modelo..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm w-48 xl:w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {activeTab === 'inventory' && (
               <>
                 <button 
                   onClick={exportToExcel}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
-                  title="Exportar para Excel com fotos"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
+                  title="Excel"
                 >
-                  {isExporting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="w-4 h-4" />
-                  )}
-                  Excel
-                </button>
-                <button 
-                  onClick={exportToCSV}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
-                >
-                  <Download className="w-4 h-4" />
-                  CSV
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Excel</span>
                 </button>
                 {profile.role !== 'viewer' && (
                   <button 
@@ -709,80 +809,254 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                       setEditingItem(null);
                       setIsFormOpen(true);
                     }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
                   >
                     <Plus className="w-4 h-4" />
-                    Novo Registro
+                    <span className="hidden sm:inline">Novo</span>
+                    <span className="sm:hidden">Novo</span>
                   </button>
                 )}
               </>
             )}
             {activeTab === 'vistoria' && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 {selectedVistoriaIds.length > 0 && (
-                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                    {selectedVistoriaIds.length} selecionado(s)
+                  <span className="hidden md:inline text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                    {selectedVistoriaIds.length}
                   </span>
                 )}
                 <button 
                   onClick={exportVistoriasToExcel}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
-                  title={selectedVistoriaIds.length > 0 ? "Exportar selecionados para Excel" : "Exportar todos para Excel"}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
                 >
-                  {isExporting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="w-4 h-4" />
-                  )}
-                  Excel
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Excel</span>
                 </button>
                 <button 
                   onClick={exportVistoriasToPDF}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
-                  title={selectedVistoriaIds.length > 0 ? "Imprimir selecionados em PDF" : "Imprimir todos em PDF"}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
                 >
-                  {isExporting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileText className="w-4 h-4" />
-                  )}
-                  PDF
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                  <span className="hidden sm:inline">PDF</span>
                 </button>
                 <button 
                   onClick={() => {
                     setEditingVistoria(null);
                     setIsVistoriaFormOpen(true);
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                  className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4" />
-                  Nova Vistoria
+                  <span className="hidden sm:inline">Nova Vistoria</span>
+                  <span className="sm:hidden">Nova</span>
                 </button>
               </div>
             )}
             {activeTab === 'users' && profile.role === 'admin' && (
               <button 
                 onClick={() => setIsUserFormOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
               >
                 <Plus className="w-4 h-4" />
-                Novo Usuário
+                <span className="hidden sm:inline">Novo Usuário</span>
+                <span className="sm:hidden">Novo</span>
               </button>
             )}
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <AnimatePresence mode="wait">
-            {activeTab === 'inventory' ? (
+            {activeTab === 'home' ? (
+              <motion.div
+                key="home"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                {/* Welcome Header */}
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Olá, {user.displayName?.split(' ')[0]}!</h3>
+                  <p className="text-gray-500">Bem-vindo ao painel de controle da GHC Solutions.</p>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                        <Database className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg uppercase tracking-wider">Total</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">Sites em Depósito</p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-3xl font-bold text-gray-900">{openSites.length}</p>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-400 font-bold">Média: {avgDays}d</span>
+                        <span className="text-[10px] text-red-600 font-bold">Máx: {maxDays}d</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
+                        <Clock className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg uppercase tracking-wider">Pendente</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">Sites em Aberto</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{items.filter(i => !i.data_saida).length}</p>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                      </div>
+                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg uppercase tracking-wider">Concluído</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">Sites Finalizados</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{items.filter(i => i.data_saida).length}</p>
+                  </div>
+                </div>
+
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 mb-6">Status do Inventário</h4>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Em Aberto', value: items.filter(i => !i.data_saida).length },
+                              { name: 'Finalizados', value: items.filter(i => i.data_saida).length }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            <Cell fill="#f59e0b" />
+                            <Cell fill="#10b981" />
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex justify-center gap-6 mt-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-amber-500" />
+                        <span className="text-sm text-gray-600 font-medium">Em Aberto</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
+                        <span className="text-sm text-gray-600 font-medium">Finalizados</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 mb-6">Atividade Recente</h4>
+                    <div className="space-y-4">
+                      {items.slice(0, 5).map((item, idx) => (
+                        <div key={item.id || idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                              <Package className="w-5 h-5 text-indigo-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">{item.site}</p>
+                              <p className="text-xs text-gray-500">{item.cidade}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-medium text-gray-400">
+                              {(() => {
+                                const start = new Date(item.data_entrada);
+                                const end = item.data_saida ? new Date(item.data_saida) : new Date();
+                                const diffTime = Math.abs(end.getTime() - start.getTime());
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                return `${diffDays} dias`;
+                              })()}
+                            </p>
+                            <span className={`text-[10px] font-bold uppercase ${item.data_saida ? 'text-green-600' : 'text-amber-600'}`}>
+                              {item.data_saida ? 'Saída' : 'Estoque'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {items.length === 0 && (
+                        <p className="text-center text-gray-400 py-12">Nenhuma atividade registrada.</p>
+                      )}
+                    </div>
+                    {items.length > 5 && (
+                      <button 
+                        onClick={() => setActiveTab('inventory')}
+                        className="w-full mt-4 py-3 text-sm font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                      >
+                        Ver tudo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ) : activeTab === 'inventory' ? (
               <motion.div
                 key="inventory"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
               >
+                {/* Stats Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                      <Database className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-500">Sites em Depósito</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-2xl font-bold text-gray-900">{openSites.length}</p>
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400 font-bold">Média: {avgDays}d</p>
+                          <p className="text-[10px] text-red-600 font-bold">Máx: {maxDays}d</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Sites em Aberto</p>
+                      <p className="text-2xl font-bold text-gray-900">{items.filter(i => !i.data_saida).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Sites Finalizados</p>
+                      <p className="text-2xl font-bold text-gray-900">{items.filter(i => i.data_saida).length}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <InventoryTable 
                   items={filteredItems} 
                   onEdit={(item) => {
@@ -837,6 +1111,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                   onDelete={handleDeleteMasterMaterial}
                   onImportBase={handleImportMasterMaterials}
                   canEdit={profile.role !== 'viewer'}
+                  canDelete={profile.role === 'admin'}
                 />
               </motion.div>
             ) : (

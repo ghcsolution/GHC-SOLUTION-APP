@@ -197,6 +197,19 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Data Saída (Finaliza Site)</label>
+                <input 
+                  type="date"
+                  value={formData.data_saida}
+                  onChange={e => setFormData({...formData, data_saida: e.target.value})}
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all ${
+                    formData.data_saida 
+                      ? 'bg-green-50 border-green-200 text-green-700' 
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                />
+              </div>
             </div>
           </section>
 

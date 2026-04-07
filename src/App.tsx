@@ -12,10 +12,11 @@ import {
   doc, 
   getDoc, 
   setDoc, 
+  deleteDoc,
   serverTimestamp 
 } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
-import { UserProfile } from './types/inventory';
+import { UserProfile, UserRole, UserPermissions } from './types/inventory';
 import Dashboard from './components/Dashboard';
 import { LogIn, Package, Shield, Loader2, Mail, Lock, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,19 +43,45 @@ export default function App() {
         if (profileSnap.exists()) {
           setProfile(profileSnap.data() as UserProfile);
         } else {
-          // Default role is viewer, unless it's the admin email
-          const isAdmin = firebaseUser.email === 'ghcampos1985@gmail.com';
-          const isDefault = firebaseUser.email === 'default@ghcsolutions.com';
+          // Check for pending invite
+          const inviteRef = doc(db, 'invites', firebaseUser.email?.toLowerCase() || '');
+          const inviteSnap = await getDoc(inviteRef);
+          
+          let role: UserRole = 'viewer';
+          let permissions: UserPermissions = {
+            inventario: true,
+            vistoria: true,
+            materiais: true
+          };
+
+          if (inviteSnap.exists()) {
+            const inviteData = inviteSnap.data();
+            role = inviteData.role;
+            permissions = inviteData.permissions;
+          } else {
+            // Default role is viewer, unless it's the admin email
+            const isAdmin = firebaseUser.email === 'ghcampos1985@gmail.com' || firebaseUser.email === 'halanarib@gmail.com';
+            const isDefault = firebaseUser.email === 'default@ghcsolutions.com';
+            role = isAdmin ? 'admin' : (isDefault ? 'editor' : 'viewer');
+          }
+
           const newProfile: UserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
-            role: isAdmin ? 'admin' : (isDefault ? 'editor' : 'viewer')
+            role,
+            permissions
           };
           await setDoc(profileRef, {
             ...newProfile,
             createdAt: serverTimestamp()
           });
+          
+          // If there was an invite, delete it
+          if (inviteSnap.exists()) {
+            await deleteDoc(inviteRef);
+          }
+
           setProfile(newProfile);
         }
       } else {

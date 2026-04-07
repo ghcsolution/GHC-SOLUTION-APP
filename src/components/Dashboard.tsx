@@ -91,6 +91,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'open' | 'finalized'>('all');
 
   const handleImportMasterMaterials = async (materialsToImport: Omit<MasterMaterial, 'id'>[]) => {
     if (!user?.uid) return;
@@ -265,11 +266,17 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
     }
   };
 
-  const filteredItems = items.filter(item => 
-    item.site.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.materiais.some(m => m.modelo.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.site.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.materiais.some(m => m.modelo.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    if (!matchesSearch) return false;
+
+    if (inventoryFilter === 'open') return !item.data_saida;
+    if (inventoryFilter === 'finalized') return !!item.data_saida;
+    return true;
+  });
 
   const filteredVistorias = vistorias.filter(v => 
     v.site.toLowerCase().includes(searchTerm.toLowerCase())
@@ -779,6 +786,42 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
             </h2>
             <div className="h-6 w-px bg-gray-200 mx-1 md:mx-2 hidden sm:block" />
+            
+            {activeTab === 'inventory' && (
+              <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setInventoryFilter('all')}
+                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                    inventoryFilter === 'all' 
+                      ? 'bg-white text-indigo-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  TODOS
+                </button>
+                <button
+                  onClick={() => setInventoryFilter('open')}
+                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                    inventoryFilter === 'open' 
+                      ? 'bg-white text-amber-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  EM ABERTO
+                </button>
+                <button
+                  onClick={() => setInventoryFilter('finalized')}
+                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                    inventoryFilter === 'finalized' 
+                      ? 'bg-white text-green-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  FINALIZADOS
+                </button>
+              </div>
+            )}
+
             <div className="relative hidden lg:block">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 

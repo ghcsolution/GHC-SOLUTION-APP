@@ -25,7 +25,6 @@ import {
   Users, 
   FileText, 
   Search,
-  Filter,
   Download,
   ChevronRight,
   LayoutDashboard,
@@ -780,27 +779,29 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shrink-0">
-          <div className="flex items-center gap-3 md:gap-4">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-            >
-              <Filter className="w-6 h-6" />
-            </button>
-            <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
-              {activeTab === 'home' ? 'Dashboard' :
-               activeTab === 'inventory' ? 'Materiais' : 
-               activeTab === 'vistoria' ? 'Vistoria RF' : 
-               activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
-            </h2>
-            <div className="h-6 w-px bg-gray-200 mx-1 md:mx-2 hidden sm:block" />
+        <header className="h-auto min-h-[5rem] md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 py-3 md:py-0 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4 flex-1">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Menu
+              </button>
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
+                {activeTab === 'home' ? 'Dashboard' :
+                 activeTab === 'inventory' ? 'Materiais' : 
+                 activeTab === 'vistoria' ? 'Vistoria RF' : 
+                 activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
+              </h2>
+            </div>
+            <div className="h-6 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
             
             {activeTab === 'inventory' && (
-              <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-xl w-full sm:w-auto justify-center sm:justify-start">
                 <button
                   onClick={() => setInventoryFilter('all')}
-                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                  className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'all' 
                       ? 'bg-white text-indigo-600 shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -810,7 +811,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                 </button>
                 <button
                   onClick={() => setInventoryFilter('open')}
-                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                  className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'open' 
                       ? 'bg-white text-amber-600 shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -820,7 +821,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                 </button>
                 <button
                   onClick={() => setInventoryFilter('finalized')}
-                  className={`px-3 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all ${
+                  className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'finalized' 
                       ? 'bg-white text-green-600 shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'

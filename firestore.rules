@@ -17,6 +17,9 @@ service cloud.firestore {
     // Fields:
     //   - site: string (required)
     //   - cidade: string (required)
+    //   - tipo: string (TX, RF)
+    //   - vendor: string (Ericsson, ZTE, Huawei, Outros)
+    //   - motivo: string (ZELADORIA, ACESSO, EHS-EDB, RFI, SOBRESSALENTE)
     //   - obs: string
     //   - local_armazenamento: string
     //   - responsavel_entrega: string
@@ -139,7 +142,10 @@ service cloud.firestore {
              data.site is string && data.site.size() < 100 &&
              data.cidade is string && data.cidade.size() < 100 &&
              data.materiais is list && data.materiais.size() < 50 &&
-             (!('fotos_romaneio' in data) || (data.fotos_romaneio is list && data.fotos_romaneio.size() <= 12));
+             (!('fotos_romaneio' in data) || (data.fotos_romaneio is list && data.fotos_romaneio.size() <= 12)) &&
+             (!('tipo' in data) || (data.tipo is string && data.tipo in ['TX', 'RF'])) &&
+             (!('vendor' in data) || (data.vendor is string && data.vendor in ['Ericsson', 'ZTE', 'Huawei', 'Outros'])) &&
+             (!('motivo' in data) || (data.motivo is string && data.motivo in ['ZELADORIA', 'ACESSO', 'EHS-EDB', 'RFI', 'SOBRESSALENTE']));
     }
 
     function isValidMasterMaterial(data) {

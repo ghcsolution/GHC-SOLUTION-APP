@@ -57,6 +57,23 @@ export default function InventoryTable({ items, onEdit, onDelete, onView, canDel
                         <MapPin className="w-3 h-3" />
                         {item.cidade}
                       </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.tipo && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                            {item.tipo}
+                          </span>
+                        )}
+                        {item.vendor && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                            {item.vendor}
+                          </span>
+                        )}
+                        {item.motivo && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                            {item.motivo}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   
@@ -189,6 +206,23 @@ export default function InventoryTable({ items, onEdit, onDelete, onView, canDel
                 <div className="flex items-center gap-1.5 text-xs text-gray-500">
                   <MapPin className="w-3 h-3" />
                   {item.cidade}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {item.tipo && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                      {item.tipo}
+                    </span>
+                  )}
+                  {item.vendor && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                      {item.vendor}
+                    </span>
+                  )}
+                  {item.motivo && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
+                      {item.motivo}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1">

@@ -284,7 +284,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
 
   const exportToCSV = () => {
     const headers = [
-      'SITE', 'CIDADE', 'OBS', 'LOCAL ARMAZENAMENTO', 'RESPONSAVEL ENTREGA', 
+      'SITE', 'CIDADE', 'TIPO', 'VENDOR', 'MOTIVO', 'OBS', 'LOCAL ARMAZENAMENTO', 'RESPONSAVEL ENTREGA', 
       'RESPONSAVEL RECEBIMENTO', 'DATA ENTRADA', 'RESPONSAVEL COLETA', 
       'RESPONSAVEL LIBERACAO', 'DATA SAIDA', 'MATERIAIS'
     ];
@@ -292,6 +292,9 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
     const csvRows = filteredItems.map(item => [
       item.site,
       item.cidade,
+      item.tipo || '',
+      item.vendor || '',
+      item.motivo || '',
       item.obs,
       item.local_armazenamento,
       item.responsavel_entrega,
@@ -322,6 +325,9 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
       worksheet.columns = [
         { header: 'SITE', key: 'site', width: 15 },
         { header: 'CIDADE', key: 'cidade', width: 20 },
+        { header: 'TIPO', key: 'tipo', width: 10 },
+        { header: 'VENDOR', key: 'vendor', width: 15 },
+        { header: 'MOTIVO', key: 'motivo', width: 20 },
         { header: 'OBS', key: 'obs', width: 30 },
         { header: 'LOCAL ARMAZENAMENTO', key: 'local', width: 20 },
         { header: 'RESP. ENTREGA', key: 'resp_entrega', width: 20 },
@@ -348,6 +354,9 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
         const row = worksheet.addRow({
           site: item.site,
           cidade: item.cidade,
+          tipo: item.tipo || '',
+          vendor: item.vendor || '',
+          motivo: item.motivo || '',
           obs: item.obs,
           local: item.local_armazenamento,
           resp_entrega: item.responsavel_entrega,

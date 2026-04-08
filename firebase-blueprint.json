@@ -15,6 +15,9 @@
         "responsavel_coleta": { "type": "string", "description": "Person responsible for collection" },
         "responsavel_liberacao": { "type": "string", "description": "Person responsible for release" },
         "data_saida": { "type": "string", "format": "date", "description": "Exit date" },
+        "tipo": { "type": "string", "enum": ["TX", "RF"], "description": "Type of equipment" },
+        "vendor": { "type": "string", "enum": ["Ericsson", "ZTE", "Huawei", "Outros"], "description": "Equipment vendor" },
+        "motivo": { "type": "string", "enum": ["ZELADORIA", "ACESSO", "EHS-EDB", "RFI", "SOBRESSALENTE"], "description": "Reason for storage" },
         "materiais": {
           "type": "array",
           "items": {

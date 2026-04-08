@@ -26,7 +26,10 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
       responsavel_liberacao: '',
       data_saida: '',
       materiais: [],
-      fotos_romaneio: []
+      fotos_romaneio: [],
+      tipo: '',
+      vendor: '',
+      motivo: ''
     }
   );
 
@@ -209,6 +212,47 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                       : 'bg-gray-50 border-gray-200'
                   }`}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Tipo</label>
+                <select 
+                  value={formData.tipo}
+                  onChange={e => setFormData({...formData, tipo: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="TX">TX</option>
+                  <option value="RF">RF</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Vendor</label>
+                <select 
+                  value={formData.vendor}
+                  onChange={e => setFormData({...formData, vendor: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="Ericsson">Ericsson</option>
+                  <option value="ZTE">ZTE</option>
+                  <option value="Huawei">Huawei</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Motivo</label>
+                <select 
+                  value={formData.motivo}
+                  onChange={e => setFormData({...formData, motivo: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="ZELADORIA">ZELADORIA</option>
+                  <option value="ACESSO">ACESSO</option>
+                  <option value="EHS-EDB">EHS-EDB</option>
+                  <option value="RFI">RFI</option>
+                  <option value="SOBRESSALENTE">SOBRESSALENTE</option>
+                </select>
               </div>
             </div>
           </section>

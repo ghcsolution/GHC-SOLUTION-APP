@@ -85,6 +85,30 @@ export default function InventoryView({ item, onClose }: InventoryViewProps) {
             </div>
           </div>
 
+          {/* Classificação */}
+          {(item.tipo || item.vendor || item.motivo) && (
+            <div className="flex flex-wrap gap-4">
+              {item.tipo && (
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipo</span>
+                  <span className="text-sm font-bold text-gray-900">{item.tipo}</span>
+                </div>
+              )}
+              {item.vendor && (
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vendor</span>
+                  <span className="text-sm font-bold text-gray-900">{item.vendor}</span>
+                </div>
+              )}
+              {item.motivo && (
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Motivo</span>
+                  <span className="text-sm font-bold text-gray-900">{item.motivo}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Materiais */}
           <div>
             <div className="flex items-center gap-2 mb-4">

@@ -24,6 +24,9 @@ export interface InventoryItem {
   data_saida: string;
   materiais: InventoryMaterial[];
   fotos_romaneio?: string[];
+  tipo?: string;
+  vendor?: string;
+  motivo?: string;
 }
 
 export interface VistoriaRF {

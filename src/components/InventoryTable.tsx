@@ -35,7 +35,8 @@ export default function InventoryTable({ items, onEdit, onDelete, onView, canDel
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Localização</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Materiais (Modelo / Código)</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Motivo</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Logística</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Romaneio</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
@@ -57,42 +58,15 @@ export default function InventoryTable({ items, onEdit, onDelete, onView, canDel
                         <MapPin className="w-3 h-3" />
                         {item.cidade}
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {item.tipo && (
-                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
-                            {item.tipo}
-                          </span>
-                        )}
-                        {item.vendor && (
-                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
-                            {item.vendor}
-                          </span>
-                        )}
-                        {item.motivo && (
-                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase">
-                            {item.motivo}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </td>
                   
                   <td className="px-6 py-6">
-                    <div className="space-y-2 max-w-xs">
-                      {item.materiais.slice(0, 2).map((m, i) => (
-                        <div key={i} className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                          <span className="text-[10px] font-bold text-indigo-600">{m.qtde}x</span>
-                          <span className="text-xs text-gray-700 truncate font-medium">
-                            {m.modelo} {m.codigoFornecedor ? `/ ${m.codigoFornecedor}` : ''}
-                          </span>
-                        </div>
-                      ))}
-                      {item.materiais.length > 2 && (
-                        <p className="text-[10px] text-gray-400 font-bold pl-1">
-                          + {item.materiais.length - 2} outros itens
-                        </p>
-                      )}
-                    </div>
+                    <span className="text-sm font-bold text-gray-900">{item.tipo || '-'}</span>
+                  </td>
+
+                  <td className="px-6 py-6">
+                    <span className="text-sm font-medium text-gray-600">{item.motivo || '-'}</span>
                   </td>
 
                   <td className="px-6 py-6">

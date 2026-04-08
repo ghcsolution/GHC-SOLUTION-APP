@@ -146,6 +146,20 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
     };
   }, [user?.uid]);
 
+  useEffect(() => {
+    if (viewingVistoria) {
+      const updated = vistorias.find(v => v.id === viewingVistoria.id);
+      if (updated) setViewingVistoria(updated);
+    }
+  }, [vistorias, viewingVistoria?.id]);
+
+  useEffect(() => {
+    if (viewingItem) {
+      const updated = items.find(i => i.id === viewingItem.id);
+      if (updated) setViewingItem(updated);
+    }
+  }, [items, viewingItem?.id]);
+
   const handleSaveItem = async (item: Omit<InventoryItem, 'id'>) => {
     setSaveError(null);
     setIsSaving(true);
@@ -227,6 +241,19 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
       await deleteDoc(doc(db, 'vistorias_rf', id));
     } catch (error) {
       console.error("Erro ao excluir vistoria:", error);
+    }
+  };
+
+  const handleUpdateVistoria = async (id: string, data: Partial<VistoriaRF>) => {
+    try {
+      const vistoriaRef = doc(db, 'vistorias_rf', id);
+      await updateDoc(vistoriaRef, {
+        ...data,
+        updatedBy: user.uid,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'vistorias_rf', user);
     }
   };
 
@@ -1350,6 +1377,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
           <VistoriaRFView 
             item={viewingVistoria}
             onClose={() => setViewingVistoria(null)}
+            onUpdate={handleUpdateVistoria}
+            canEdit={profile.role !== 'viewer'}
           />
         )}
       </AnimatePresence>

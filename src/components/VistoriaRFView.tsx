@@ -1,22 +1,120 @@
 import React from 'react';
 import { VistoriaRF } from '../types/inventory';
-import { X, MapPin, Calendar, Camera, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, MapPin, Calendar, Camera, Image as ImageIcon, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 
 interface VistoriaRFViewProps {
   item: VistoriaRF;
   onClose: () => void;
+  onUpdate?: (id: string, data: Partial<VistoriaRF>) => Promise<void>;
+  canEdit?: boolean;
 }
 
-export default function VistoriaRFView({ item, onClose }: VistoriaRFViewProps) {
+export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = false }: VistoriaRFViewProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string, fieldId: string, label: string } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const compressImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    });
+  };
+
+  const handleEditPhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedPhoto || !onUpdate) return;
+
+    setIsUpdating(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const compressed = await compressImage(reader.result as string);
+        const updateData: Partial<VistoriaRF> = {};
+        
+        if (selectedPhoto.fieldId === 'foto_fachada') {
+          updateData.foto_fachada = compressed;
+        } else if (selectedPhoto.fieldId === 'foto_placa') {
+          updateData.foto_placa = compressed;
+        } else {
+          updateData.photos = { ...(item.photos || {}), [selectedPhoto.fieldId]: compressed };
+        }
+
+        await onUpdate(item.id, updateData);
+        setSelectedPhoto(prev => prev ? { ...prev, url: compressed } : null);
+      } catch (error) {
+        console.error('Error updating photo:', error);
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!selectedPhoto || !onUpdate) return;
+    
+    setIsUpdating(true);
+    try {
+      const updateData: Partial<VistoriaRF> = {};
+      
+      if (selectedPhoto.fieldId === 'foto_fachada') {
+        updateData.foto_fachada = '';
+      } else if (selectedPhoto.fieldId === 'foto_placa') {
+        updateData.foto_placa = '';
+      } else {
+        const newPhotos = { ...(item.photos || {}) };
+        delete newPhotos[selectedPhoto.fieldId];
+        updateData.photos = newPhotos;
+      }
+
+      await onUpdate(item.id, updateData);
+      setSelectedPhoto(null);
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+    } finally {
+      setIsUpdating(false);
+    }
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -147,21 +245,21 @@ export default function VistoriaRFView({ item, onClose }: VistoriaRFViewProps) {
               <div className="space-y-3">
                 <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Foto 01 - Fachada</h4>
                 {item.foto_fachada ? (
-                  <div className="aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-md group relative">
+                  <div 
+                    onClick={() => setSelectedPhoto({ url: item.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
+                    className="aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-md group relative cursor-pointer"
+                  >
                     <img 
                       src={item.foto_fachada} 
                       alt="Fachada" 
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
-                    <a 
-                      href={item.foto_fachada} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    >
-                      <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 shadow-lg">Ver Original</span>
-                    </a>
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 shadow-lg flex items-center gap-2">
+                        <Maximize2 className="w-3 h-3" /> Visualizar
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <div className="aspect-video bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2">
@@ -175,21 +273,21 @@ export default function VistoriaRFView({ item, onClose }: VistoriaRFViewProps) {
               <div className="space-y-3">
                 <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Foto 02 - Placa</h4>
                 {item.foto_placa ? (
-                  <div className="aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-md group relative">
+                  <div 
+                    onClick={() => setSelectedPhoto({ url: item.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
+                    className="aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-md group relative cursor-pointer"
+                  >
                     <img 
                       src={item.foto_placa} 
                       alt="Placa" 
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
-                    <a 
-                      href={item.foto_placa} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    >
-                      <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 shadow-lg">Ver Original</span>
-                    </a>
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 shadow-lg flex items-center gap-2">
+                        <Maximize2 className="w-3 h-3" /> Visualizar
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <div className="aspect-video bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2">
@@ -245,21 +343,21 @@ export default function VistoriaRFView({ item, onClose }: VistoriaRFViewProps) {
                                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block truncate" title={field.label}>
                                     {field.label}
                                   </label>
-                                  <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 shadow-sm group">
+                                  <div 
+                                    onClick={() => setSelectedPhoto({ url: photoData, fieldId: field.id, label: field.label })}
+                                    className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 shadow-sm group cursor-pointer"
+                                  >
                                     <img 
                                       src={photoData} 
                                       alt={field.label} 
                                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                       referrerPolicy="no-referrer"
                                     />
-                                    <a 
-                                      href={photoData} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                    >
-                                      <span className="bg-white/90 px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-900 shadow-lg">Ver Original</span>
-                                    </a>
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <span className="bg-white/90 px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-900 shadow-lg flex items-center gap-2">
+                                        <Maximize2 className="w-3 h-3" /> Visualizar
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -284,6 +382,111 @@ export default function VistoriaRFView({ item, onClose }: VistoriaRFViewProps) {
           </button>
         </div>
       </motion.div>
+
+      {/* Photo Action Modal */}
+      <AnimatePresence>
+        {selectedPhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl w-full flex flex-col gap-4"
+            >
+              <div className="flex items-center justify-between text-white">
+                <h3 className="font-bold text-lg">{selectedPhoto.label}</h3>
+                <button 
+                  onClick={() => setSelectedPhoto(null)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="aspect-video w-full bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative group">
+                <img 
+                  src={selectedPhoto.url} 
+                  alt={selectedPhoto.label}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+                {isUpdating && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="w-12 h-12 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-4 py-2">
+                {!showDeleteConfirm ? (
+                  <>
+                    <a 
+                      href={selectedPhoto.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all shadow-xl"
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                      Abrir Original
+                    </a>
+
+                    {canEdit && onUpdate && (
+                      <>
+                        <button 
+                          onClick={handleEditPhoto}
+                          disabled={isUpdating}
+                          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl disabled:opacity-50"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                          Editar Foto
+                        </button>
+                        <button 
+                          onClick={() => setShowDeleteConfirm(true)}
+                          disabled={isUpdating}
+                          className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-xl disabled:opacity-50"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                          Excluir Foto
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-4 bg-red-50 p-4 rounded-2xl border border-red-100 animate-in fade-in zoom-in duration-200">
+                    <p className="text-red-900 font-bold text-sm">Excluir esta foto?</p>
+                    <button 
+                      onClick={handleDeletePhoto}
+                      disabled={isUpdating}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-all"
+                    >
+                      Sim, Excluir
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isUpdating}
+                      className="px-4 py-2 bg-white text-gray-500 rounded-xl font-bold text-xs hover:bg-gray-100 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileChange} 
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

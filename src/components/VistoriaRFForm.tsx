@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { VistoriaRF } from '../types/inventory';
-import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
+import { useRef } from 'react';
 
 interface VistoriaRFFormProps {
   item: VistoriaRF | null;
@@ -61,6 +62,9 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
 
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string, fieldId: string, label: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
@@ -344,6 +348,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                   <>
                     <img src={formData.foto_fachada} alt="Fachada" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => setSelectedPhoto({ url: formData.foto_fachada!, fieldId: 'fachada', label: 'Fachada' })}
+                        className="p-3 bg-white rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600"
+                      >
+                        <Maximize2 className="w-6 h-6" />
+                      </button>
                       <label className="cursor-pointer p-3 bg-white rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600" />
                         <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'fachada')} />
@@ -377,6 +388,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                   <>
                     <img src={formData.foto_placa} alt="Placa" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => setSelectedPhoto({ url: formData.foto_placa!, fieldId: 'placa', label: 'Placa' })}
+                        className="p-3 bg-white rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600"
+                      >
+                        <Maximize2 className="w-6 h-6" />
+                      </button>
                       <label className="cursor-pointer p-3 bg-white rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600" />
                         <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'placa')} />
@@ -448,6 +466,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                                   <>
                                     <img src={formData.photos[field.id]} alt={field.label} className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                      <button 
+                                        type="button"
+                                        onClick={() => setSelectedPhoto({ url: formData.photos![field.id], fieldId: field.id, label: field.label })}
+                                        className="p-2 bg-white rounded-xl shadow-lg hover:scale-110 transition-transform text-indigo-600"
+                                      >
+                                        <Maximize2 className="w-4 h-4" />
+                                      </button>
                                       <label className="cursor-pointer p-2 bg-white rounded-xl shadow-lg hover:scale-110 transition-transform">
                                         <Camera className="w-4 h-4 text-indigo-600" />
                                         <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, field.id)} />
@@ -515,6 +540,122 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
           </button>
         </footer>
       </motion.div>
+
+      {/* Photo Action Modal */}
+      <AnimatePresence>
+        {selectedPhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl w-full flex flex-col gap-4"
+            >
+              <div className="flex items-center justify-between text-white">
+                <h3 className="font-bold text-lg">{selectedPhoto.label}</h3>
+                <button 
+                  onClick={() => setSelectedPhoto(null)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="aspect-video w-full bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative group">
+                <img 
+                  src={selectedPhoto.url} 
+                  alt={selectedPhoto.label}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+                {isUploading[selectedPhoto.fieldId] && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="w-12 h-12 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-4 py-2">
+                {!showDeleteConfirm ? (
+                  <>
+                    <a 
+                      href={selectedPhoto.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all shadow-xl"
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                      Abrir Original
+                    </a>
+
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading[selectedPhoto.fieldId]}
+                      className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl disabled:opacity-50"
+                    >
+                      <Camera className="w-5 h-5" />
+                      Editar Foto
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isUploading[selectedPhoto.fieldId]}
+                      className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-xl disabled:opacity-50"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      Excluir Foto
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-4 bg-red-50 p-4 rounded-2xl border border-red-100 animate-in fade-in zoom-in duration-200">
+                    <p className="text-red-900 font-bold text-sm">Excluir esta foto?</p>
+                    <button 
+                      onClick={() => {
+                        if (selectedPhoto.fieldId === 'fachada') {
+                          setFormData({...formData, foto_fachada: ''});
+                        } else if (selectedPhoto.fieldId === 'placa') {
+                          setFormData({...formData, foto_placa: ''});
+                        } else {
+                          const newPhotos = { ...formData.photos };
+                          delete newPhotos[selectedPhoto.fieldId];
+                          setFormData({ ...formData, photos: newPhotos });
+                        }
+                        setSelectedPhoto(null);
+                        setShowDeleteConfirm(false);
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-all"
+                    >
+                      Sim, Excluir
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-2 bg-white text-gray-500 rounded-xl font-bold text-xs hover:bg-gray-100 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={(e) => {
+                  handlePhotoUpload(e, selectedPhoto.fieldId);
+                  // We need to update the selectedPhoto URL after upload, but handlePhotoUpload is async
+                  // For simplicity in the form, we'll just close the modal or let the user see the change in the form
+                  setSelectedPhoto(null);
+                }} 
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

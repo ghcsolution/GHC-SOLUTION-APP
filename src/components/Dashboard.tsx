@@ -978,10 +978,10 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                 </div>
 
                 {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
                     <h4 className="text-lg font-bold text-gray-900 mb-6">Status do Inventário</h4>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -1005,18 +1005,154 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="flex justify-center gap-6 mt-4">
+                    <div className="flex justify-center gap-4 mt-4">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-amber-500" />
-                        <span className="text-sm text-gray-600 font-medium">Em Aberto</span>
+                        <span className="text-[10px] text-gray-600 font-medium">Em Aberto</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span className="text-sm text-gray-600 font-medium">Finalizados</span>
+                        <span className="text-[10px] text-gray-600 font-medium">Finalizados</span>
                       </div>
                     </div>
                   </div>
 
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 mb-6">Distribuição por Tipo</h4>
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={(() => {
+                              const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
+                              items.forEach(item => {
+                                const key = item.tipo || 'Não Definido';
+                                counts[key] = (counts[key] || 0) + 1;
+                              });
+                              return Object.entries(counts)
+                                .filter(([_, value]) => value > 0)
+                                .map(([name, value]) => ({ name, value }));
+                            })()}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {(() => {
+                              const colorMap: Record<string, string> = {
+                                'TX': '#6366f1',
+                                'RF': '#ec4899',
+                                'Não Definido': '#8b5cf6'
+                              };
+                              const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
+                              items.forEach(item => {
+                                const key = item.tipo || 'Não Definido';
+                                counts[key] = (counts[key] || 0) + 1;
+                              });
+                              return Object.entries(counts)
+                                .filter(([_, value]) => value > 0)
+                                .map(([name]) => (
+                                  <Cell key={`cell-${name}`} fill={colorMap[name] || '#cbd5e1'} />
+                                ));
+                            })()}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-3 mt-4">
+                      {[
+                        { label: 'TX', color: '#6366f1' },
+                        { label: 'RF', color: '#ec4899' },
+                        { label: 'Não Definido', color: '#8b5cf6' }
+                      ].map((type) => (
+                        <div key={type.label} className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: type.color }} />
+                          <span className="text-[10px] text-gray-600 font-medium">{type.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 mb-6">Distribuição por Motivo</h4>
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={(() => {
+                              const categories = ['ZELADORIA', 'ACESSO', 'EHS-EDB', 'RFI', 'SOBRESSALENTE', 'Outros'];
+                              const counts: Record<string, number> = {};
+                              categories.forEach(cat => counts[cat] = 0);
+                              
+                              items.forEach(item => {
+                                const key = item.motivo || 'Outros';
+                                counts[key] = (counts[key] || 0) + 1;
+                              });
+                              return Object.entries(counts)
+                                .filter(([_, value]) => value > 0)
+                                .map(([name, value]) => ({ name, value }));
+                            })()}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {(() => {
+                              const colorMap: Record<string, string> = {
+                                'ZELADORIA': '#f43f5e',
+                                'ACESSO': '#f59e0b',
+                                'EHS-EDB': '#10b981',
+                                'RFI': '#3b82f6',
+                                'SOBRESSALENTE': '#8b5cf6',
+                                'Outros': '#64748b'
+                              };
+                              const categories = ['ZELADORIA', 'ACESSO', 'EHS-EDB', 'RFI', 'SOBRESSALENTE', 'Outros'];
+                              const counts: Record<string, number> = {};
+                              categories.forEach(cat => counts[cat] = 0);
+                              items.forEach(item => {
+                                const key = item.motivo || 'Outros';
+                                counts[key] = (counts[key] || 0) + 1;
+                              });
+                              return Object.entries(counts)
+                                .filter(([_, value]) => value > 0)
+                                .map(([name]) => (
+                                  <Cell key={`cell-${name}`} fill={colorMap[name] || '#cbd5e1'} />
+                                ));
+                            })()}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2 mt-4">
+                      {[
+                        { label: 'ZELADORIA', color: '#f43f5e' },
+                        { label: 'ACESSO', color: '#f59e0b' },
+                        { label: 'EHS-EDB', color: '#10b981' },
+                        { label: 'RFI', color: '#3b82f6' },
+                        { label: 'SOBRESSALENTE', color: '#8b5cf6' },
+                        { label: 'Outros', color: '#64748b' }
+                      ].map((motivo) => (
+                        <div key={motivo.label} className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: motivo.color }} />
+                          <span className="text-[9px] text-gray-600 font-medium">{motivo.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Section */}
+                <div className="grid grid-cols-1 gap-6">
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
                     <h4 className="text-lg font-bold text-gray-900 mb-6">Atividade Recente</h4>
                     <div className="space-y-4">

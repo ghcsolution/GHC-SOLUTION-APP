@@ -141,11 +141,11 @@ export default function MaterialManagement({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Buscar materiais..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent outline-none transition-all text-gray-900 dark:text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -163,7 +163,7 @@ export default function MaterialManagement({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isImporting}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50"
               >
                 {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
                 Importar CSV
@@ -174,7 +174,7 @@ export default function MaterialManagement({
             <button
               onClick={handleImport}
               disabled={isImporting}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50"
             >
               {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
               Importar Base
@@ -183,7 +183,7 @@ export default function MaterialManagement({
           {canEdit && (
             <button
               onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
               Novo Material
@@ -192,31 +192,31 @@ export default function MaterialManagement({
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Modelo</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Código Fornecedor</th>
-                {canEdit && <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Ações</th>}
+              <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Modelo</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Código Fornecedor</th>
+                {canEdit && <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Ações</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
               <AnimatePresence mode="popLayout">
                 {isAdding && (
                   <motion.tr
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-indigo-50/30"
+                    className="bg-indigo-50/30 dark:bg-indigo-900/10"
                   >
                     <td className="px-6 py-4">
                       <input
                         autoFocus
                         type="text"
                         placeholder="Modelo do equipamento"
-                        className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-gray-900 dark:text-white"
                         value={newMaterial.modelo}
                         onChange={e => setNewMaterial({ ...newMaterial, modelo: e.target.value })}
                       />
@@ -225,7 +225,7 @@ export default function MaterialManagement({
                       <input
                         type="text"
                         placeholder="Código do fornecedor"
-                        className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-gray-900 dark:text-white"
                         value={newMaterial.codigoFornecedor}
                         onChange={e => setNewMaterial({ ...newMaterial, codigoFornecedor: e.target.value })}
                       />
@@ -235,13 +235,13 @@ export default function MaterialManagement({
                         <button
                           onClick={handleAdd}
                           disabled={isSaving || !newMaterial.modelo}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50"
                         >
                           {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                         </button>
                         <button
                           onClick={() => setIsAdding(false)}
-                          className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                         >
                           <X className="w-5 h-5" />
                         </button>
@@ -252,22 +252,22 @@ export default function MaterialManagement({
               </AnimatePresence>
 
               {paginatedMaterials.map((material) => (
-                <tr key={material.id} className="group hover:bg-gray-50/50 transition-colors">
+                <tr key={material.id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     {editingId === material.id ? (
                       <input
                         autoFocus
                         type="text"
-                        className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-gray-900 dark:text-white"
                         value={editMaterial.modelo}
                         onChange={e => setEditMaterial({ ...editMaterial, modelo: e.target.value })}
                       />
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                          <Package className="w-4 h-4 text-indigo-600" />
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                          <Package className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <span className="font-medium text-gray-900">{material.modelo}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{material.modelo}</span>
                       </div>
                     )}
                   </td>
@@ -275,12 +275,12 @@ export default function MaterialManagement({
                     {editingId === material.id ? (
                       <input
                         type="text"
-                        className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-gray-900 dark:text-white"
                         value={editMaterial.codigoFornecedor}
                         onChange={e => setEditMaterial({ ...editMaterial, codigoFornecedor: e.target.value })}
                       />
                     ) : (
-                      <span className="text-gray-500 font-mono text-sm">{material.codigoFornecedor}</span>
+                      <span className="text-gray-500 dark:text-gray-400 font-mono text-sm">{material.codigoFornecedor}</span>
                     )}
                   </td>
                   {canEdit && (
@@ -291,13 +291,13 @@ export default function MaterialManagement({
                             <button
                               onClick={() => handleUpdate(material.id!)}
                               disabled={isSaving || !editMaterial.modelo}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50"
                             >
                               {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             >
                               <X className="w-5 h-5" />
                             </button>
@@ -312,7 +312,7 @@ export default function MaterialManagement({
                                   codigoFornecedor: material.codigoFornecedor 
                                 });
                               }}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -323,7 +323,7 @@ export default function MaterialManagement({
                                     onDelete(material.id!);
                                   }
                                 }}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -340,25 +340,25 @@ export default function MaterialManagement({
         </div>
         {filteredMaterials.length === 0 && (
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Package className="w-8 h-8 text-gray-300" />
+            <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Nenhum material encontrado</h3>
-            <p className="text-gray-500 mt-1">Tente ajustar sua busca ou adicione um novo material.</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Nenhum material encontrado</h3>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Tente ajustar sua busca ou adicione um novo material.</p>
           </div>
         )}
       </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-4">
-          <p className="text-sm text-gray-500 font-medium">
-            Mostrando <span className="text-gray-900">{startIndex + 1}</span> a <span className="text-gray-900">{Math.min(startIndex + itemsPerPage, filteredMaterials.length)}</span> de <span className="text-gray-900">{filteredMaterials.length}</span> materiais
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            Mostrando <span className="text-gray-900 dark:text-white">{startIndex + 1}</span> a <span className="text-gray-900 dark:text-white">{Math.min(startIndex + itemsPerPage, filteredMaterials.length)}</span> de <span className="text-gray-900 dark:text-white">{filteredMaterials.length}</span> materiais
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+              className="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-all"
             >
               Anterior
             </button>
@@ -377,8 +377,8 @@ export default function MaterialManagement({
                       onClick={() => setCurrentPage(pageNum)}
                       className={`w-10 h-10 text-sm font-bold rounded-xl transition-all ${
                         currentPage === pageNum 
-                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-lg shadow-indigo-200 dark:shadow-none' 
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                     >
                       {pageNum}
@@ -388,7 +388,7 @@ export default function MaterialManagement({
                   pageNum === currentPage - 2 || 
                   pageNum === currentPage + 2
                 ) {
-                  return <span key={pageNum} className="text-gray-400">...</span>;
+                  return <span key={pageNum} className="text-gray-400 dark:text-gray-600">...</span>;
                 }
                 return null;
               })}
@@ -396,7 +396,7 @@ export default function MaterialManagement({
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
+              className="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-all"
             >
               Próxima
             </button>

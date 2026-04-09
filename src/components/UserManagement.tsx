@@ -114,39 +114,39 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
 
   return (
     <div className="space-y-6">
-      <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200 flex items-center justify-between">
+      <div className="bg-indigo-600 dark:bg-indigo-500 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-between">
         <div>
           <h3 className="text-2xl font-bold mb-2">Gestão de Usuários</h3>
-          <p className="text-indigo-100 opacity-80">Controle quem pode visualizar, editar ou administrar o sistema.</p>
+          <p className="text-indigo-100 dark:text-indigo-50 opacity-80">Controle quem pode visualizar, editar ou administrar o sistema.</p>
         </div>
-        <Shield className="w-16 h-16 text-indigo-400 opacity-30" />
+        <Shield className="w-16 h-16 text-indigo-400 dark:text-indigo-300 opacity-30" />
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Usuário</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Permissão</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Inventário</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Vistoria RF</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Materiais</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+              <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Usuário</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Permissão</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Inventário</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Vistoria RF</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Materiais</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
               {/* Active Users */}
               {filteredUsers.map((user) => (
-                <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                <tr key={user.uid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
+                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500">
                         <UserIcon className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{user.displayName}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">{user.displayName}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                           <Mail className="w-3 h-3" />
                           {user.email}
                         </div>
@@ -158,7 +158,7 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       value={user.role}
                       disabled={user.uid === currentUser.uid}
                       onChange={(e) => handleRoleChange(user.uid, e.target.value as UserRole)}
-                      className="text-sm font-semibold bg-gray-50 border-none rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-all cursor-pointer"
+                      className="text-sm font-semibold bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:text-white disabled:opacity-50 transition-all cursor-pointer"
                     >
                       <option value="viewer">Visualizador</option>
                       <option value="editor">Editor</option>
@@ -171,7 +171,7 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       checked={user.role === 'admin' || (user.permissions?.inventario ?? true)}
                       disabled={user.uid === currentUser.uid || user.role === 'admin'}
                       onChange={(e) => handlePermissionChange(user.uid, 'inventario', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-800"
                     />
                   </td>
                   <td className="px-6 py-6 text-center">
@@ -180,7 +180,7 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       checked={user.role === 'admin' || (user.permissions?.vistoria ?? true)}
                       disabled={user.uid === currentUser.uid || user.role === 'admin'}
                       onChange={(e) => handlePermissionChange(user.uid, 'vistoria', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-800"
                     />
                   </td>
                   <td className="px-6 py-6 text-center">
@@ -189,25 +189,25 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       checked={user.role === 'admin' || (user.permissions?.materiais ?? true)}
                       disabled={user.uid === currentUser.uid || user.role === 'admin'}
                       onChange={(e) => handlePermissionChange(user.uid, 'materiais', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-800"
                     />
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center justify-between gap-4">
                       {user.uid === currentUser.uid ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                           <CheckCircle2 className="w-4 h-4" />
                           Você
                         </span>
                       ) : (
                         <div className="flex items-center gap-4">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400">
                             <CheckCircle2 className="w-4 h-4" />
                             Ativo
                           </span>
                           <button 
                             onClick={() => handleDeleteUser(user.uid)}
-                            className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Excluir Usuário"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -221,15 +221,15 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
 
               {/* Pending Invites */}
               {invites.filter(inv => !users.some(u => u.email === inv.email)).map((invite) => (
-                <tr key={invite.email} className="bg-amber-50/30 hover:bg-amber-50/50 transition-colors">
+                <tr key={invite.email} className="bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-colors">
                   <td className="px-6 py-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                      <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400">
                         <Clock className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900">Aguardando Login</p>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">Aguardando Login</p>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                           <Mail className="w-3 h-3" />
                           {invite.email}
                         </div>
@@ -237,28 +237,28 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                     </div>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase">
+                    <span className="text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full uppercase">
                       {invite.role === 'admin' ? 'Admin' : invite.role === 'editor' ? 'Editor' : 'Visitante'}
                     </span>
                   </td>
                   <td className="px-6 py-6 text-center">
-                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.inventario ? 'bg-green-500' : 'bg-gray-200'}`} />
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.inventario ? 'bg-green-500 dark:bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                   </td>
                   <td className="px-6 py-6 text-center">
-                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.vistoria ? 'bg-green-500' : 'bg-gray-200'}`} />
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.vistoria ? 'bg-green-500 dark:bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                   </td>
                   <td className="px-6 py-6 text-center">
-                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.materiais ? 'bg-green-500' : 'bg-gray-200'}`} />
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.materiais ? 'bg-green-500 dark:bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
                         <Clock className="w-4 h-4" />
                         Pendente
                       </span>
                       <button 
                         onClick={() => handleDeleteInvite(invite.email)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Remover Convite"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -273,26 +273,26 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-gray-200">
-          <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800">
+          <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500" />
             Visualizador
           </h4>
-          <p className="text-sm text-gray-500">Pode apenas visualizar os registros e exportar relatórios.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Pode apenas visualizar os registros e exportar relatórios.</p>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-gray-200">
-          <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800">
+          <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-indigo-500" />
             Editor
           </h4>
-          <p className="text-sm text-gray-500">Pode criar e editar registros de estoque, mas não excluir.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Pode criar e editar registros de estoque, mas não excluir.</p>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-gray-200">
-          <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800">
+          <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-red-500" />
             Administrador
           </h4>
-          <p className="text-sm text-gray-500">Controle total do sistema, incluindo gestão de usuários e exclusões.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Controle total do sistema, incluindo gestão de usuários e exclusões.</p>
         </div>
       </div>
     </div>

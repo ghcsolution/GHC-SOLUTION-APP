@@ -34,7 +34,9 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Clock,
-  Database
+  Database,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -68,9 +70,11 @@ interface DashboardProps {
   user: User;
   profile: UserProfile;
   onLogout: () => void;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
-export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
+export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggleDarkMode }: DashboardProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [vistorias, setVistorias] = useState<VistoriaRF[]>([]);
   const [materials, setMaterials] = useState<MasterMaterial[]>([]);
@@ -678,7 +682,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
   const maxDays = openSitesDays.length > 0 ? Math.max(...openSitesDays) : 0;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+    <div className={`flex h-screen overflow-hidden relative ${isDarkMode ? 'dark bg-gray-950' : 'bg-gray-50'}`}>
       {/* Mobile Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -694,20 +698,34 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:relative md:translate-x-0
       `}>
-        <div className="p-6 flex items-center justify-between">
+        <div className="p-6 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-              <Package className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 100 100" className="w-10 h-10">
+                <path 
+                  d="M78 45C75 30 60 20 45 20C25 20 10 35 10 55C10 75 25 90 45 90C65 90 78 75 78 55H45" 
+                  fill="none" 
+                  stroke="#0082c8" 
+                  strokeWidth="14" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <circle cx="78" cy="18" r="12" fill="#0082c8" />
+              </svg>
+              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
+              <div className="flex flex-col leading-none">
+                <span className="font-black text-xl tracking-tighter text-[#0082c8]">GHC</span>
+                <span className="font-light text-[8px] tracking-[0.2em] text-[#0082c8]">TELECOM</span>
+              </div>
             </div>
-            <span className="font-bold text-xl tracking-tight">GHC Solutions</span>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-2 text-gray-400 hover:text-gray-600"
+            className="md:hidden p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <Plus className="w-6 h-6 rotate-45" />
           </button>
@@ -718,8 +736,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
             onClick={() => { setActiveTab('home'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
               activeTab === 'home' 
-                ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             <LayoutDashboard className="w-5 h-5" />
@@ -731,11 +749,11 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeTab === 'inventory' 
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
-              <LayoutDashboard className="w-5 h-5" />
+              <FileText className="w-5 h-5" />
               Inventário
             </button>
           )}
@@ -745,8 +763,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               onClick={() => { setActiveTab('vistoria'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeTab === 'vistoria' 
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               <Camera className="w-5 h-5" />
@@ -759,8 +777,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               onClick={() => { setActiveTab('materias'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeTab === 'materias' 
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               <Package className="w-5 h-5" />
@@ -773,8 +791,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeTab === 'users' 
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               <Users className="w-5 h-5" />
@@ -783,16 +801,16 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
           )}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
-          <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 flex items-center gap-3">
             <img 
               src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
-              className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+              className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
               alt="Avatar"
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate">{user.displayName}</p>
-              <p className="text-xs text-gray-500 capitalize">{profile.role}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.displayName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{profile.role}</p>
             </div>
             <button 
               onClick={onLogout}
@@ -805,33 +823,33 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-auto min-h-[5rem] md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 py-3 md:py-0 shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-gray-950">
+        <header className="h-auto min-h-[5rem] md:h-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 md:px-8 py-3 md:py-0 shrink-0">
           <div className="flex flex-wrap items-center gap-3 md:gap-4 flex-1">
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                className="md:hidden px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Menu
               </button>
-              <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white truncate">
                 {activeTab === 'home' ? 'Dashboard' :
                  activeTab === 'inventory' ? 'Materiais' : 
                  activeTab === 'vistoria' ? 'Vistoria RF' : 
                  activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
               </h2>
             </div>
-            <div className="h-6 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1 md:mx-2 hidden md:block" />
             
             {activeTab === 'inventory' && (
-              <div className="flex items-center bg-gray-100 p-0.5 rounded-xl w-full sm:w-auto justify-center sm:justify-start">
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-0.5 rounded-xl w-full sm:w-auto justify-center sm:justify-start">
                 <button
                   onClick={() => setInventoryFilter('all')}
                   className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'all' 
-                      ? 'bg-white text-indigo-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   TODOS
@@ -840,8 +858,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                   onClick={() => setInventoryFilter('open')}
                   className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'open' 
-                      ? 'bg-white text-amber-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   EM ABERTO
@@ -850,8 +868,8 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                   onClick={() => setInventoryFilter('finalized')}
                   className={`px-2 py-1 text-[9px] md:text-xs font-bold rounded-lg transition-all ${
                     inventoryFilter === 'finalized' 
-                      ? 'bg-white text-green-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 shadow-sm' 
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   FINALIZADOS
@@ -866,18 +884,25 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm w-48 xl:w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-sm w-48 xl:w-64 focus:ring-2 focus:ring-indigo-500 transition-all text-gray-900 dark:text-white"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            <button
+              onClick={onToggleDarkMode}
+              className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              title={isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             {activeTab === 'inventory' && (
               <>
                 <button 
                   onClick={exportToExcel}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-all disabled:opacity-50"
                   title="Excel"
                 >
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
@@ -889,7 +914,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                       setEditingItem(null);
                       setIsFormOpen(true);
                     }}
-                    className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Novo</span>
@@ -901,14 +926,14 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
             {activeTab === 'vistoria' && (
               <div className="flex items-center gap-2 md:gap-3">
                 {selectedVistoriaIds.length > 0 && (
-                  <span className="hidden md:inline text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                  <span className="hidden md:inline text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg">
                     {selectedVistoriaIds.length}
                   </span>
                 )}
                 <button 
                   onClick={exportVistoriasToExcel}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-all disabled:opacity-50"
                 >
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
                   <span className="hidden sm:inline">Excel</span>
@@ -916,7 +941,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                 <button 
                   onClick={exportVistoriasToPDF}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all disabled:opacity-50"
                 >
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                   <span className="hidden sm:inline">PDF</span>
@@ -926,7 +951,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                     setEditingVistoria(null);
                     setIsVistoriaFormOpen(true);
                   }}
-                  className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                  className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline">Nova Vistoria</span>
@@ -937,7 +962,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
             {activeTab === 'users' && profile.role === 'admin' && (
               <button 
                 onClick={() => setIsUserFormOpen(true)}
-                className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Novo Usuário</span>
@@ -959,56 +984,56 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               >
                 {/* Welcome Header */}
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900">Olá, {user.displayName?.split(' ')[0]}!</h3>
-                  <p className="text-gray-500">Bem-vindo ao painel de controle da GHC Solutions.</p>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Olá, {user.displayName?.split(' ')[0]}!</h3>
+                  <p className="text-gray-500 dark:text-gray-400">Bem-vindo ao painel de controle da GHC Telecom.</p>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
-                        <Database className="w-6 h-6 text-indigo-600" />
+                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">
+                        <Database className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                       </div>
-                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg uppercase tracking-wider">Total</span>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg uppercase tracking-wider">Total</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Sites em Depósito</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites em Depósito</p>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <p className="text-3xl font-bold text-gray-900">{openSites.length}</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">{openSites.length}</p>
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-400 font-bold">Média: {avgDays}d</span>
-                        <span className="text-[10px] text-red-600 font-bold">Máx: {maxDays}d</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Média: {avgDays}d</span>
+                        <span className="text-[10px] text-red-600 dark:text-red-400 font-bold">Máx: {maxDays}d</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-amber-600" />
+                      <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+                        <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                       </div>
-                      <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg uppercase tracking-wider">Pendente</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg uppercase tracking-wider">Pendente</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Sites em Aberto</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{items.filter(i => !i.data_saida).length}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites em Aberto</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{items.filter(i => !i.data_saida).length}</p>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                      <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                       </div>
-                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg uppercase tracking-wider">Concluído</span>
+                      <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-lg uppercase tracking-wider">Concluído</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Sites Finalizados</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{items.filter(i => i.data_saida).length}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites Finalizados</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{items.filter(i => i.data_saida).length}</p>
                   </div>
                 </div>
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 mb-6">Status do Inventário</h4>
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Status do Inventário</h4>
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -1028,7 +1053,13 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                             <Cell fill="#10b981" />
                           </Pie>
                           <Tooltip 
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            contentStyle={{ 
+                              backgroundColor: isDarkMode ? '#111827' : '#fff', 
+                              borderRadius: '16px', 
+                              border: 'none', 
+                              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                              color: isDarkMode ? '#fff' : '#000'
+                            }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -1036,17 +1067,17 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                     <div className="flex justify-center gap-4 mt-4">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-amber-500" />
-                        <span className="text-[10px] text-gray-600 font-medium">Em Aberto</span>
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium">Em Aberto</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span className="text-[10px] text-gray-600 font-medium">Finalizados</span>
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium">Finalizados</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 mb-6">Distribuição por Tipo</h4>
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Distribuição por Tipo</h4>
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -1087,7 +1118,13 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                             })()}
                           </Pie>
                           <Tooltip 
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            contentStyle={{ 
+                              backgroundColor: isDarkMode ? '#111827' : '#fff', 
+                              borderRadius: '16px', 
+                              border: 'none', 
+                              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                              color: isDarkMode ? '#fff' : '#000'
+                            }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -1100,14 +1137,14 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                       ].map((type) => (
                         <div key={type.label} className="flex items-center gap-1.5">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: type.color }} />
-                          <span className="text-[10px] text-gray-600 font-medium">{type.label}</span>
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium">{type.label}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 mb-6">Distribuição por Motivo</h4>
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Distribuição por Motivo</h4>
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -1156,7 +1193,13 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                             })()}
                           </Pie>
                           <Tooltip 
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            contentStyle={{ 
+                              backgroundColor: isDarkMode ? '#111827' : '#fff', 
+                              borderRadius: '16px', 
+                              border: 'none', 
+                              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                              color: isDarkMode ? '#fff' : '#000'
+                            }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -1172,7 +1215,7 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                       ].map((motivo) => (
                         <div key={motivo.label} className="flex items-center gap-1">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: motivo.color }} />
-                          <span className="text-[9px] text-gray-600 font-medium">{motivo.label}</span>
+                          <span className="text-[9px] text-gray-600 dark:text-gray-400 font-medium">{motivo.label}</span>
                         </div>
                       ))}
                     </div>
@@ -1181,22 +1224,22 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
 
                 {/* Activity Section */}
                 <div className="grid grid-cols-1 gap-6">
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 mb-6">Atividade Recente</h4>
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Atividade Recente</h4>
                     <div className="space-y-4">
                       {items.slice(0, 5).map((item, idx) => (
-                        <div key={item.id || idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
+                        <div key={item.id || idx} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                              <Package className="w-5 h-5 text-indigo-600" />
+                            <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                              <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-gray-900">{item.site}</p>
-                              <p className="text-xs text-gray-500">{item.cidade}</p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">{item.site}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{item.cidade}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium text-gray-400">
+                            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
                               {(() => {
                                 const start = new Date(item.data_entrada);
                                 const end = item.data_saida ? new Date(item.data_saida) : new Date();
@@ -1205,20 +1248,20 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
                                 return `${diffDays} dias`;
                               })()}
                             </p>
-                            <span className={`text-[10px] font-bold uppercase ${item.data_saida ? 'text-green-600' : 'text-amber-600'}`}>
+                            <span className={`text-[10px] font-bold uppercase ${item.data_saida ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
                               {item.data_saida ? 'Saída' : 'Estoque'}
                             </span>
                           </div>
                         </div>
                       ))}
                       {items.length === 0 && (
-                        <p className="text-center text-gray-400 py-12">Nenhuma atividade registrada.</p>
+                        <p className="text-center text-gray-400 dark:text-gray-500 py-12">Nenhuma atividade registrada.</p>
                       )}
                     </div>
                     {items.length > 5 && (
                       <button 
                         onClick={() => setActiveTab('inventory')}
-                        className="w-full mt-4 py-3 text-sm font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                        className="w-full mt-4 py-3 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
                       >
                         Ver tudo
                       </button>
@@ -1236,39 +1279,39 @@ export default function Dashboard({ user, profile, onLogout }: DashboardProps) {
               >
                 {/* Stats Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
-                      <Database className="w-6 h-6 text-indigo-600" />
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">
+                      <Database className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-500">Sites em Depósito</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites em Depósito</p>
                       <div className="flex items-center justify-between">
-                        <p className="text-2xl font-bold text-gray-900">{openSites.length}</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{openSites.length}</p>
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-400 font-bold">Média: {avgDays}d</p>
-                          <p className="text-[10px] text-red-600 font-bold">Máx: {maxDays}d</p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Média: {avgDays}d</p>
+                          <p className="text-[10px] text-red-600 dark:text-red-400 font-bold">Máx: {maxDays}d</p>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-amber-600" />
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Sites em Aberto</p>
-                      <p className="text-2xl font-bold text-gray-900">{items.filter(i => !i.data_saida).length}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites em Aberto</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{items.filter(i => !i.data_saida).length}</p>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Sites Finalizados</p>
-                      <p className="text-2xl font-bold text-gray-900">{items.filter(i => i.data_saida).length}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites Finalizados</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{items.filter(i => i.data_saida).length}</p>
                     </div>
                   </div>
                 </div>

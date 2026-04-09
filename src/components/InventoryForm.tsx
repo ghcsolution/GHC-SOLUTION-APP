@@ -138,87 +138,87 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+        className="bg-white dark:bg-gray-900 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
       >
-        <header className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <header className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <Package className="w-6 h-6 text-indigo-600" />
+            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+              <Package className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 {item ? 'Editar Registro' : 'Novo Registro de Estoque'}
               </h3>
-              <p className="text-xs text-gray-500">Preencha as informações do site e materiais</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Preencha as informações do site e materiais</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <X className="w-6 h-6 text-gray-400" />
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <X className="w-6 h-6 text-gray-400 dark:text-gray-500" />
           </button>
         </header>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
           {/* Informações do Site */}
           <section>
-            <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
               Informações do Local
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Site *</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Site *</label>
                 <input 
                   required
                   value={formData.site}
                   onChange={e => setFormData({...formData, site: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                   placeholder="Ex: SIIPS03"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Cidade *</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Cidade *</label>
                 <input 
                   required
                   value={formData.cidade}
                   onChange={e => setFormData({...formData, cidade: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                   placeholder="Ex: Iracemápolis"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Data Entrada *</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Data Entrada *</label>
                 <input 
                   type="date"
                   required
                   value={formData.data_entrada}
                   onChange={e => setFormData({...formData, data_entrada: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Data Saída (Finaliza Site)</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Data Saída (Finaliza Site)</label>
                 <input 
                   type="date"
                   value={formData.data_saida}
                   onChange={e => setFormData({...formData, data_saida: e.target.value})}
-                  className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all ${
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all ${
                     formData.data_saida 
-                      ? 'bg-green-50 border-green-200 text-green-700' 
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 text-green-700 dark:text-green-400' 
+                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
                   }`}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Tipo</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tipo</label>
                 <select 
                   value={formData.tipo}
                   onChange={e => setFormData({...formData, tipo: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 >
                   <option value="">Selecione...</option>
                   <option value="TX">TX</option>
@@ -226,11 +226,11 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Vendor</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Vendor</label>
                 <select 
                   value={formData.vendor}
                   onChange={e => setFormData({...formData, vendor: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 >
                   <option value="">Selecione...</option>
                   <option value="Ericsson">Ericsson</option>
@@ -240,11 +240,11 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Motivo</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Motivo</label>
                 <select 
                   value={formData.motivo}
                   onChange={e => setFormData({...formData, motivo: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 >
                   <option value="">Selecione...</option>
                   <option value="ZELADORIA">ZELADORIA</option>
@@ -259,41 +259,41 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
 
           {/* Responsáveis */}
           <section>
-            <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
               Responsáveis e Logística
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Entrega</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Entrega</label>
                 <input 
                   value={formData.responsavel_entrega}
                   onChange={e => setFormData({...formData, responsavel_entrega: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Recebimento</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Recebimento</label>
                 <input 
                   value={formData.responsavel_recebimento}
                   onChange={e => setFormData({...formData, responsavel_recebimento: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Coleta</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Coleta</label>
                 <input 
                   value={formData.responsavel_coleta}
                   onChange={e => setFormData({...formData, responsavel_coleta: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Liberação</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Liberação</label>
                 <input 
                   value={formData.responsavel_liberacao}
                   onChange={e => setFormData({...formData, responsavel_liberacao: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -301,25 +301,25 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
 
           {/* Materiais */}
           <section>
-            <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
               Materiais
             </h4>
             
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-4">
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Qtde</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Qtde</label>
                   <input 
                     type="number"
                     min="1"
                     value={newMaterial.qtde}
                     onChange={e => setNewMaterial({...newMaterial, qtde: parseInt(e.target.value) || 1})}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="md:col-span-8 space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Modelo do Equipamento</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Modelo do Equipamento</label>
                   <select 
                     value={newMaterial.modelo}
                     onChange={e => {
@@ -330,7 +330,7 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                         codigoFornecedor: equip?.codigoFornecedor || ''
                       });
                     }}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all text-gray-900 dark:text-white"
                   >
                     <option value="">Selecione um modelo...</option>
                     {materials.map((eq, i) => (
@@ -340,7 +340,7 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                     ))}
                   </select>
                   {materials.length === 0 && (
-                    <p className="text-[10px] text-amber-600 font-medium mt-1">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-1">
                       Nenhum material cadastrado. Vá em "Materiais" e clique em "Importar Base".
                     </p>
                   )}
@@ -349,7 +349,7 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                   <button 
                     type="button"
                     onClick={handleAddMaterial}
-                    className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     Add
@@ -360,20 +360,20 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
               {formData.materiais.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {formData.materiais.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                    <div key={i} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
                       <div className="flex items-center gap-4">
-                        <span className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                        <span className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center font-bold text-sm">
                           {m.qtde}
                         </span>
                         <div>
-                          <p className="text-sm font-bold text-gray-800">{m.modelo}</p>
-                          <p className="text-xs text-gray-400">{m.codigoFornecedor}</p>
+                          <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.modelo}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{m.codigoFornecedor}</p>
                         </div>
                       </div>
                       <button 
                         type="button"
                         onClick={() => removeMaterial(i)}
-                        className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                        className="p-2 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -386,19 +386,19 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
 
           {/* Fotos do Romaneio */}
           <section>
-            <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
               Fotos do Romaneio de Transporte (1 a 12 fotos)
             </h4>
             
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {(formData.fotos_romaneio || []).map((photo, index) => (
                   <div key={index} className="relative aspect-square group">
                     <img 
                       src={photo} 
                       alt={`Romaneio ${index + 1}`} 
-                      className="w-full h-full object-cover rounded-xl border border-gray-200 shadow-sm"
+                      className="w-full h-full object-cover rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
                     />
                     <button
                       type="button"
@@ -411,13 +411,13 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                 ))}
                 
                 {(formData.fotos_romaneio || []).length < 12 && (
-                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer">
+                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer">
                     {isUploading ? (
-                      <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+                      <Loader2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin" />
                     ) : (
                       <>
-                        <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Upload</span>
+                        <Upload className="w-6 h-6 text-gray-400 dark:text-gray-500 mb-2" />
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Upload</span>
                       </>
                     )}
                     <input 
@@ -431,7 +431,7 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                   </label>
                 )}
               </div>
-              <p className="mt-4 text-xs text-gray-400 italic">
+              <p className="mt-4 text-xs text-gray-400 dark:text-gray-500 italic">
                 * As fotos são armazenadas localmente no registro. Recomendamos fotos leves para melhor performance.
               </p>
             </div>
@@ -440,35 +440,35 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
           {/* Observações */}
           <section>
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-gray-700">Observações</label>
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Observações</label>
               <textarea 
                 value={formData.obs}
                 onChange={e => setFormData({...formData, obs: e.target.value})}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all min-h-[100px]"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all min-h-[100px] text-gray-900 dark:text-white"
                 placeholder="Notas adicionais sobre o armazenamento..."
               />
             </div>
           </section>
 
           {saveError && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium">
               {saveError}
             </div>
           )}
         </form>
 
-        <footer className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+        <footer className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 flex justify-end gap-3">
           <button 
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition-all"
+            className="px-6 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all"
           >
             Cancelar
           </button>
           <button 
             onClick={handleSubmit}
             disabled={isSaving}
-            className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-70"
+            className="px-8 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-70"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin" />

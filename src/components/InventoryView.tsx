@@ -4,6 +4,7 @@ import { X, MapPin, Calendar, User, Package, FileText, Image as ImageIcon } from
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'motion/react';
+import { ImageLightbox } from './ImageLightbox';
 
 interface InventoryViewProps {
   item: InventoryItem;
@@ -11,6 +12,12 @@ interface InventoryViewProps {
 }
 
 export default function InventoryView({ item, onClose }: InventoryViewProps) {
+  const [lightbox, setLightbox] = React.useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: ''
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-sm">
       <motion.div 
@@ -158,17 +165,16 @@ export default function InventoryView({ item, onClose }: InventoryViewProps) {
                     <img 
                       src={photo} 
                       alt={`Foto ${i + 1}`} 
-                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110 cursor-pointer"
                       referrerPolicy="no-referrer"
+                      onClick={() => setLightbox({ isOpen: true, src: photo, alt: `Foto ${i + 1}` })}
                     />
-                    <a 
-                      href={photo} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    <div 
+                      onClick={() => setLightbox({ isOpen: true, src: photo, alt: `Foto ${i + 1}` })}
+                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                     >
                       <span className="bg-white/90 dark:bg-gray-800/90 px-3 py-1 rounded-full text-[10px] font-bold text-gray-900 dark:text-white">Ver Original</span>
-                    </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -189,6 +195,13 @@ export default function InventoryView({ item, onClose }: InventoryViewProps) {
           </button>
         </div>
       </motion.div>
+
+      <ImageLightbox 
+        isOpen={lightbox.isOpen}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false }))}
+        src={lightbox.src}
+        alt={lightbox.alt}
+      />
     </div>
   );
 }

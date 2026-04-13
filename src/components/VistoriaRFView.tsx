@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef } from 'react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
+import { ImageLightbox } from './ImageLightbox';
 
 interface VistoriaRFViewProps {
   item: VistoriaRF;
@@ -15,6 +16,12 @@ interface VistoriaRFViewProps {
 }
 
 export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = false }: VistoriaRFViewProps) {
+  const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: ''
+  });
+
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string, fieldId: string, label: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -252,13 +259,24 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
                     <img 
                       src={item.foto_fachada} 
                       alt="Fachada" 
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
                       referrerPolicy="no-referrer"
+                      onClick={() => setLightbox({ isOpen: true, src: item.foto_fachada!, alt: 'Fachada' })}
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <span className="bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 dark:text-white shadow-lg flex items-center gap-2">
                         <Maximize2 className="w-3 h-3" /> Visualizar
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightbox({ isOpen: true, src: item.foto_fachada!, alt: 'Fachada' });
+                        }}
+                        className="bg-white/90 dark:bg-gray-800/90 p-2 rounded-full text-gray-700 dark:text-gray-200 shadow-lg"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -280,13 +298,24 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
                     <img 
                       src={item.foto_placa} 
                       alt="Placa" 
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
                       referrerPolicy="no-referrer"
+                      onClick={() => setLightbox({ isOpen: true, src: item.foto_placa!, alt: 'Placa' })}
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <span className="bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 dark:text-white shadow-lg flex items-center gap-2">
                         <Maximize2 className="w-3 h-3" /> Visualizar
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightbox({ isOpen: true, src: item.foto_placa!, alt: 'Placa' });
+                        }}
+                        className="bg-white/90 dark:bg-gray-800/90 p-2 rounded-full text-gray-700 dark:text-gray-200 shadow-lg"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -350,13 +379,24 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
                                     <img 
                                       src={photoData} 
                                       alt={field.label} 
-                                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                      className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
                                       referrerPolicy="no-referrer"
+                                      onClick={() => setLightbox({ isOpen: true, src: photoData, alt: field.label })}
                                     />
-                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                       <span className="bg-white/90 dark:bg-gray-800/90 px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-900 dark:text-white shadow-lg flex items-center gap-2">
                                         <Maximize2 className="w-3 h-3" /> Visualizar
                                       </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLightbox({ isOpen: true, src: photoData, alt: field.label });
+                                        }}
+                                        className="bg-white/90 dark:bg-gray-800/90 p-1.5 rounded-full text-gray-700 dark:text-gray-200 shadow-lg"
+                                      >
+                                        <ExternalLink className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
@@ -412,8 +452,9 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
                 <img 
                   src={selectedPhoto.url} 
                   alt={selectedPhoto.label}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain cursor-pointer"
                   referrerPolicy="no-referrer"
+                  onClick={() => setLightbox({ isOpen: true, src: selectedPhoto.url, alt: selectedPhoto.label })}
                 />
                 {isUpdating && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -425,15 +466,13 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
               <div className="flex flex-wrap items-center justify-center gap-4 py-2">
                 {!showDeleteConfirm ? (
                   <>
-                    <a 
-                      href={selectedPhoto.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={() => setLightbox({ isOpen: true, src: selectedPhoto.url, alt: selectedPhoto.label })}
                       className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all shadow-xl"
                     >
                       <ExternalLink className="w-5 h-5" />
                       Abrir Original
-                    </a>
+                    </button>
 
                     {canEdit && onUpdate && (
                       <>
@@ -487,6 +526,13 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ImageLightbox 
+        isOpen={lightbox.isOpen}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false }))}
+        src={lightbox.src}
+        alt={lightbox.alt}
+      />
     </div>
   );
 }

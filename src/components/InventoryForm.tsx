@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { InventoryItem, InventoryMaterial, MasterMaterial } from '../types/inventory';
-import { X, Plus, Trash2, Save, Package, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Save, Package, Image as ImageIcon, Upload, Loader2, Sparkles, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
+import { extractMaterialsFromImage } from '../services/geminiService';
+import { ImageLightbox } from './ImageLightbox';
 
 interface InventoryFormProps {
   item: InventoryItem | null;
@@ -13,6 +15,12 @@ interface InventoryFormProps {
 }
 
 export default function InventoryForm({ item, materials, onClose, onSave, isSaving = false, saveError = null }: InventoryFormProps) {
+  const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: ''
+  });
+
   const [formData, setFormData] = useState<Omit<InventoryItem, 'id'>>(
     item ? { ...item } : {
       site: '',
@@ -34,6 +42,7 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
   );
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [newMaterial, setNewMaterial] = useState<InventoryMaterial>({
     qtde: 1,
@@ -126,6 +135,48 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
       ...prev,
       fotos_romaneio: (prev.fotos_romaneio || []).filter((_, i) => i !== index)
     }));
+  };
+
+  const handleAnalyzeImage = async (photoBase64: string) => {
+    if (isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const result = await extractMaterialsFromImage(photoBase64);
+      
+      if (result.itens && result.itens.length > 0) {
+        const matchedMaterials: InventoryMaterial[] = result.itens.map(item => {
+          // Try to find a match in the master materials list
+          const searchTerm = item.material.toLowerCase();
+          const match = materials.find(m => 
+            m.modelo.toLowerCase() === searchTerm || 
+            m.codigoFornecedor.toLowerCase() === searchTerm ||
+            m.modelo.toLowerCase().includes(searchTerm) ||
+            searchTerm.includes(m.modelo.toLowerCase())
+          );
+
+          return {
+            qtde: item.quantidade,
+            modelo: match ? match.modelo : item.material,
+            codigoFornecedor: match ? match.codigoFornecedor : 'Extraído via IA'
+          };
+        });
+
+        setFormData(prev => ({
+          ...prev,
+          materiais: [...prev.materiais, ...matchedMaterials]
+        }));
+        
+        alert(`${matchedMaterials.length} materiais extraídos com sucesso!`);
+      } else {
+        alert("Nenhum material encontrado na imagem.");
+      }
+    } catch (error: any) {
+      console.error("Erro na análise da IA:", error);
+      alert(error.message || "Erro ao analisar a imagem. Verifique se a chave GEMINI_API_KEY_1 está configurada.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -398,14 +449,35 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
                     <img 
                       src={photo} 
                       alt={`Romaneio ${index + 1}`} 
-                      className="w-full h-full object-cover rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="w-full h-full object-cover rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer"
+                      onClick={() => setLightbox({ isOpen: true, src: photo, alt: `Romaneio ${index + 1}` })}
                     />
                     <button
                       type="button"
                       onClick={() => removePhoto(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     >
                       <X className="w-3 h-3" />
+                    </button>
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setLightbox({ isOpen: true, src: photo, alt: `Romaneio ${index + 1}` })}
+                        className="bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Abrir em nova janela"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAnalyzeImage(photo)}
+                      disabled={isAnalyzing}
+                      className="absolute bottom-2 right-2 bg-indigo-600 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-bold disabled:opacity-50 z-10"
+                      title="Analisar com IA"
+                    >
+                      {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      IA
                     </button>
                   </div>
                 ))}
@@ -479,6 +551,13 @@ export default function InventoryForm({ item, materials, onClose, onSave, isSavi
           </button>
         </footer>
       </motion.div>
+
+      <ImageLightbox 
+        isOpen={lightbox.isOpen}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false }))}
+        src={lightbox.src}
+        alt={lightbox.alt}
+      />
     </div>
   );
 }

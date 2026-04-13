@@ -4,6 +4,7 @@ import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Max
 import { motion, AnimatePresence } from 'motion/react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 import { useRef } from 'react';
+import { ImageLightbox } from './ImageLightbox';
 
 interface VistoriaRFFormProps {
   item: VistoriaRF | null;
@@ -14,6 +15,12 @@ interface VistoriaRFFormProps {
 }
 
 export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false, saveError = null }: VistoriaRFFormProps) {
+  const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: ''
+  });
+
   const [formData, setFormData] = useState<Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>>(
     item ? { 
       site: item.site,
@@ -346,7 +353,12 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
               <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
                 {formData.foto_fachada ? (
                   <>
-                    <img src={formData.foto_fachada} alt="Fachada" className="w-full h-full object-cover" />
+                    <img 
+                      src={formData.foto_fachada} 
+                      alt="Fachada" 
+                      className="w-full h-full object-cover cursor-pointer" 
+                      onClick={() => setLightbox({ isOpen: true, src: formData.foto_fachada!, alt: 'Fachada' })}
+                    />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
@@ -354,6 +366,14 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLightbox({ isOpen: true, src: formData.foto_fachada!, alt: 'Fachada' })}
+                        className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
+                        title="Abrir em nova janela"
+                      >
+                        <ExternalLink className="w-6 h-6" />
                       </button>
                       <label className="cursor-pointer p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
@@ -386,7 +406,12 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
               <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
                 {formData.foto_placa ? (
                   <>
-                    <img src={formData.foto_placa} alt="Placa" className="w-full h-full object-cover" />
+                    <img 
+                      src={formData.foto_placa} 
+                      alt="Placa" 
+                      className="w-full h-full object-cover cursor-pointer" 
+                      onClick={() => setLightbox({ isOpen: true, src: formData.foto_placa!, alt: 'Placa' })}
+                    />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
@@ -394,6 +419,14 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLightbox({ isOpen: true, src: formData.foto_placa!, alt: 'Placa' })}
+                        className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
+                        title="Abrir em nova janela"
+                      >
+                        <ExternalLink className="w-6 h-6" />
                       </button>
                       <label className="cursor-pointer p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
@@ -464,7 +497,12 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                               <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
                                 {formData.photos?.[field.id] ? (
                                   <>
-                                    <img src={formData.photos[field.id]} alt={field.label} className="w-full h-full object-cover" />
+                                    <img 
+                                      src={formData.photos[field.id]} 
+                                      alt={field.label} 
+                                      className="w-full h-full object-cover cursor-pointer" 
+                                      onClick={() => setLightbox({ isOpen: true, src: formData.photos![field.id], alt: field.label })}
+                                    />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                       <button 
                                         type="button"
@@ -472,6 +510,14 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                                         className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                                       >
                                         <Maximize2 className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setLightbox({ isOpen: true, src: formData.photos![field.id], alt: field.label })}
+                                        className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
+                                        title="Abrir em nova janela"
+                                      >
+                                        <ExternalLink className="w-4 h-4" />
                                       </button>
                                       <label className="cursor-pointer p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform">
                                         <Camera className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -570,8 +616,9 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                 <img 
                   src={selectedPhoto.url} 
                   alt={selectedPhoto.label}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain cursor-pointer"
                   referrerPolicy="no-referrer"
+                  onClick={() => setLightbox({ isOpen: true, src: selectedPhoto.url, alt: selectedPhoto.label })}
                 />
                 {isUploading[selectedPhoto.fieldId] && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -583,15 +630,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
               <div className="flex flex-wrap items-center justify-center gap-4 py-2">
                 {!showDeleteConfirm ? (
                   <>
-                    <a 
-                      href={selectedPhoto.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={() => setLightbox({ isOpen: true, src: selectedPhoto.url, alt: selectedPhoto.label })}
                       className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all shadow-xl"
                     >
                       <ExternalLink className="w-5 h-5" />
                       Abrir Original
-                    </a>
+                    </button>
 
                     <button 
                       onClick={() => fileInputRef.current?.click()}
@@ -656,6 +701,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ImageLightbox 
+        isOpen={lightbox.isOpen}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false }))}
+        src={lightbox.src}
+        alt={lightbox.alt}
+      />
     </motion.div>
   );
 }

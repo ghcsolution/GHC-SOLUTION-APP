@@ -877,14 +877,14 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
               </div>
             )}
 
-            <div className="relative hidden lg:block">
+            <div className="relative w-full md:w-auto order-last md:order-none mt-2 md:mt-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text"
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-sm w-48 xl:w-64 focus:ring-2 focus:ring-indigo-500 transition-all text-gray-900 dark:text-white"
+                className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-sm w-full md:w-48 xl:w-64 focus:ring-2 focus:ring-indigo-500 transition-all text-gray-900 dark:text-white"
               />
             </div>
           </div>

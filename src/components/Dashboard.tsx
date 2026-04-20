@@ -985,7 +985,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                 {/* Welcome Header */}
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Olá, {user.displayName?.split(' ')[0]}!</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Bem-vindo ao painel de controle da GHC Telecom.</p>
+                  <p className="text-gray-500 dark:text-gray-400">Bem-vindo ao painel de controle da GHC Solutions.</p>
                 </div>
 
                 {/* Stats Grid */}

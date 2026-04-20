@@ -236,7 +236,7 @@ export default function App() {
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-2 hidden">
-                GHC Telecom
+                GHC Solutions
               </h1>
               <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
                 Soluções inteligentes para sua Empresa.

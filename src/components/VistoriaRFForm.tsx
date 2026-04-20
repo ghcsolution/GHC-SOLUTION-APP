@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VistoriaRF } from '../types/inventory';
-import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink } from 'lucide-react';
+import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Send, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 import { useRef } from 'react';
@@ -42,6 +42,9 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
       foto_fachada: item.foto_fachada,
       foto_placa: item.foto_placa,
       photos: item.photos || {},
+      status: item.status || 'pending',
+      rejectedPhotos: item.rejectedPhotos || [],
+      requiredFields: item.requiredFields || [],
       updatedBy: item.updatedBy,
       updatedAt: item.updatedAt
     } : {
@@ -63,9 +66,20 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
       bairro: '',
       foto_fachada: '',
       foto_placa: '',
+      status: 'pending',
+      rejectedPhotos: [],
+      requiredFields: [],
       photos: {}
     }
   );
+
+  const isFieldRequired = (fieldId: string) => {
+    return formData.requiredFields?.includes(fieldId);
+  };
+
+  const isRejected = (fieldId: string) => {
+    return formData.rejectedPhotos?.includes(fieldId);
+  };
 
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -140,6 +154,16 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
       alert('Por favor, preencha o Site e a Data.');
       return;
     }
+
+    // Check required fields
+    if (formData.requiredFields && formData.requiredFields.length > 0) {
+      const missingFields = formData.requiredFields.filter(f => !formData.photos?.[f]);
+      if (missingFields.length > 0) {
+        alert('Por favor, envie todas as fotos obrigatórias.');
+        return;
+      }
+    }
+
     onSave(formData);
   };
 
@@ -349,8 +373,19 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Foto Fachada */}
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 01 - Fachada</label>
-              <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 01 - Fachada</label>
+                {isRejected('fachada') && (
+                  <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase animate-pulse">
+                    <AlertTriangle className="w-3 h-3" /> Foto Reprovada
+                  </span>
+                )}
+              </div>
+              <div className={`relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 flex flex-col items-center justify-center overflow-hidden group transition-all ${
+                isRejected('fachada') 
+                  ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
+                  : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
+              }`}>
                 {formData.foto_fachada ? (
                   <>
                     <img 
@@ -402,8 +437,19 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
 
             {/* Foto Placa */}
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 02 - Placa</label>
-              <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 02 - Placa</label>
+                {isRejected('placa') && (
+                  <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase animate-pulse">
+                    <AlertTriangle className="w-3 h-3" /> Foto Reprovada
+                  </span>
+                )}
+              </div>
+              <div className={`relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 flex flex-col items-center justify-center overflow-hidden group transition-all ${
+                isRejected('placa') 
+                  ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
+                  : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
+              }`}>
                 {formData.foto_placa ? (
                   <>
                     <img 
@@ -491,10 +537,26 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-900">
                           {section.fields.map((field) => (
                             <div key={field.id} className="space-y-2">
-                              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate" title={field.label}>
-                                {field.label}
-                              </label>
-                              <div className="relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden group transition-all hover:border-indigo-300 dark:hover:border-indigo-500">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate" title={field.label}>
+                                  {field.label}
+                                </label>
+                                {isRejected(field.id) && (
+                                  <span className="flex items-center gap-1 text-[8px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded-full uppercase animate-pulse">
+                                    <AlertTriangle className="w-2 h-2" /> Reprovada
+                                  </span>
+                                )}
+                                {isFieldRequired(field.id) && !formData.photos?.[field.id] && (
+                                  <span className="text-[8px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded uppercase">Obrigatório</span>
+                                )}
+                              </div>
+                              <div className={`relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 flex flex-col items-center justify-center overflow-hidden group transition-all ${
+                                isRejected(field.id)
+                                  ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                                  : isFieldRequired(field.id) && !formData.photos?.[field.id] 
+                                    ? 'border-red-200 dark:border-red-900/50 border-dashed bg-red-50/30 dark:bg-red-900/10' 
+                                    : 'border-gray-200 dark:border-gray-700 border-dashed hover:border-indigo-300 dark:hover:border-indigo-500'
+                              }`}>
                                 {formData.photos?.[field.id] ? (
                                   <>
                                     <img 
@@ -564,7 +626,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
           )}
         </form>
 
-        <footer className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 flex justify-end gap-3 shrink-0">
+        <footer className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 flex flex-col sm:flex-row justify-end gap-3 shrink-0">
           <button 
             type="button"
             onClick={onClose}
@@ -572,17 +634,34 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
           >
             Cancelar
           </button>
+          
           <button 
-            onClick={handleSubmit}
-            disabled={isSaving || isUploading.fachada || isUploading.placa}
-            className="px-8 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-70"
+            onClick={() => onSave(formData)}
+            disabled={isSaving || Object.values(isUploading).some(v => v)}
+            className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            <Save className="w-4 h-4" />
+            Salvar Rascunho
+          </button>
+
+          <button 
+            onClick={() => {
+              // Basic validation for submission
+              if (!formData.site || !formData.data) {
+                alert('Preencha Site e Data antes de enviar.');
+                return;
+              }
+              onSave({ ...formData, status: 'submitted' });
+            }}
+            disabled={isSaving || Object.values(isUploading).some(v => v)}
+            className="px-8 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Save className="w-4 h-4" />
+              <Send className="w-4 h-4" />
             )}
-            {item ? 'Salvar Alterações' : 'Registrar Vistoria'}
+            Enviar para Aprovação
           </button>
         </footer>
       </motion.div>

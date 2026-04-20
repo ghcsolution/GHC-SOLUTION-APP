@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { UserProfile, UserRole, UserPermissions } from './types/inventory';
-import Dashboard from './components/Dashboard';
+const Dashboard = lazy(() => import('./components/Dashboard'));
 import { LogIn, Package, Shield, Loader2, Mail, Lock, UserPlus, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -70,7 +70,8 @@ export default function App() {
           let permissions: UserPermissions = {
             inventario: true,
             vistoria: true,
-            materiais: true
+            materiais: true,
+            aprovacao: false
           };
 
           if (inviteSnap.exists()) {
@@ -79,9 +80,18 @@ export default function App() {
             permissions = inviteData.permissions;
           } else {
             // Default role is viewer, unless it's the admin email
-            const isAdmin = firebaseUser.email === 'ghcampos1985@gmail.com' || firebaseUser.email === 'halanarib@gmail.com';
+            const isAdminEmail = firebaseUser.email === 'ghcampos1985@gmail.com' || firebaseUser.email === 'halanarib@gmail.com';
             const isDefault = firebaseUser.email === 'default@ghctelecom.com';
-            role = isAdmin ? 'admin' : (isDefault ? 'editor' : 'viewer');
+            role = isAdminEmail ? 'admin' : (isDefault ? 'editor' : 'viewer');
+            
+            if (role === 'admin') {
+              permissions = {
+                inventario: true,
+                vistoria: true,
+                materiais: true,
+                aprovacao: true
+              };
+            }
           }
 
           const newProfile: UserProfile = {
@@ -338,13 +348,19 @@ export default function App() {
             </div>
           </motion.div>
         ) : profile ? (
-          <Dashboard 
-            user={user} 
-            profile={profile} 
-            onLogout={handleLogout} 
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(prev => !prev)}
-          />
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+              <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+            </div>
+          }>
+            <Dashboard 
+              user={user} 
+              profile={profile} 
+              onLogout={handleLogout} 
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={() => setIsDarkMode(prev => !prev)}
+            />
+          </Suspense>
         ) : null}
       </AnimatePresence>
     </div>

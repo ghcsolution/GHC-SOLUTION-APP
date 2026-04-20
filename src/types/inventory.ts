@@ -50,6 +50,12 @@ export interface VistoriaRF {
   foto_fachada?: string;
   foto_placa?: string;
   photos?: Record<string, string>;
+  requiredFields?: string[];
+  status: 'pending' | 'submitted' | 'approved' | 'rejected';
+  rejectedPhotos?: string[];
+  approvalFeedback?: string;
+  approvedBy?: string;
+  approvedAt?: any;
   createdBy: string;
   createdAt: any;
   updatedBy?: string;
@@ -62,6 +68,7 @@ export interface UserPermissions {
   inventario: boolean;
   vistoria: boolean;
   materiais: boolean;
+  aprovacao: boolean;
 }
 
 export interface UserProfile {

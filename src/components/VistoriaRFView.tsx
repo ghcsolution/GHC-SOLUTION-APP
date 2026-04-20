@@ -1,6 +1,6 @@
 import React from 'react';
 import { VistoriaRF } from '../types/inventory';
-import { X, MapPin, Calendar, Camera, Image as ImageIcon, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { X, MapPin, Calendar, Camera, Image as ImageIcon, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Loader2, CheckCircle2, XCircle, MessageSquare, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -12,10 +12,25 @@ interface VistoriaRFViewProps {
   item: VistoriaRF;
   onClose: () => void;
   onUpdate?: (id: string, data: Partial<VistoriaRF>) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  onApprove?: (id: string, feedback: string) => Promise<void>;
+  onReject?: (id: string, feedback: string) => Promise<void>;
   canEdit?: boolean;
+  canDelete?: boolean;
+  canApprove?: boolean;
 }
 
-export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = false }: VistoriaRFViewProps) {
+export default function VistoriaRFView({ 
+  item, 
+  onClose, 
+  onUpdate,
+  onDelete,
+  onApprove, 
+  onReject, 
+  canEdit = false, 
+  canDelete = false,
+  canApprove = false 
+}: VistoriaRFViewProps) {
   const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
     isOpen: false,
     src: '',
@@ -26,6 +41,9 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string, fieldId: string, label: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showApprovalForm, setShowApprovalForm] = useState<'approve' | 'reject' | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [localRejectedPhotos, setLocalRejectedPhotos] = useState<string[]>(item.rejectedPhotos || []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (title: string) => {
@@ -115,7 +133,7 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
         updateData.photos = newPhotos;
       }
 
-      await onUpdate(item.id, updateData);
+      await onUpdate(item.id!, updateData);
       setSelectedPhoto(null);
     } catch (error) {
       console.error('Error deleting photo:', error);
@@ -123,6 +141,50 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
       setIsUpdating(false);
     }
   };
+
+  const handleStatusAction = async () => {
+    if (!showApprovalForm || !item.id) return;
+    setIsUpdating(true);
+    try {
+      if (showApprovalForm === 'approve' && onApprove) {
+        await onApprove(item.id, feedback);
+      } else if (showApprovalForm === 'reject' && onReject) {
+        await onReject(item.id, feedback);
+      }
+      onClose();
+    } catch (error) {
+      console.error('Error during status action:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const togglePhotoRejection = async (fieldId: string) => {
+    if (!onUpdate || !item.id) return;
+    setIsUpdating(true);
+    try {
+      const isAlreadyRejected = localRejectedPhotos.includes(fieldId);
+      const newRejected = isAlreadyRejected
+        ? localRejectedPhotos.filter(id => id !== fieldId)
+        : [...localRejectedPhotos, fieldId];
+      
+      setLocalRejectedPhotos(newRejected);
+      
+      // Auto-set status to rejected if any photo is rejected
+      const newStatus = newRejected.length > 0 ? 'rejected' : item.status;
+      
+      await onUpdate(item.id, { 
+        rejectedPhotos: newRejected,
+        status: newStatus as any
+      });
+    } catch (error) {
+      console.error('Error toggling photo rejection:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const isRejected = (fieldId: string) => localRejectedPhotos.includes(fieldId);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <motion.div 
@@ -145,6 +207,79 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
+          {/* Status Alert if Pending and user is approver */}
+          {canApprove && (item.status === 'pending' || !item.status) && !showApprovalForm && (
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-sm">
+                  <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-indigo-900 dark:text-indigo-200">Aprovação Necessária</h4>
+                  <p className="text-sm text-indigo-700 dark:text-indigo-400">Esta vistoria aguarda sua revisão.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowApprovalForm('reject')}
+                  className="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-600 border border-red-100 dark:border-red-900/30 rounded-xl font-bold text-sm hover:bg-red-50 transition-all"
+                >
+                  Reprovar
+                </button>
+                <button
+                  onClick={() => setShowApprovalForm('approve')}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
+                >
+                  Aprovar Vistoria
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showApprovalForm && (
+            <div className={`p-6 rounded-3xl border animate-in zoom-in-95 duration-200 ${
+              showApprovalForm === 'approve' 
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800' 
+                : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'
+            }`}>
+              <div className="flex items-center gap-3 mb-4">
+                {showApprovalForm === 'approve' ? <CheckCircle2 className="w-6 h-6 text-green-600" /> : <XCircle className="w-6 h-6 text-red-600" />}
+                <h4 className="font-bold text-gray-900 dark:text-white">
+                  {showApprovalForm === 'approve' ? 'Confirmar Aprovação' : 'Confirmar Reprovação'}
+                </h4>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Feedback / Observações</label>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder={showApprovalForm === 'approve' ? 'Opcional: Informe o que achou da vistoria...' : 'Obrigatório: Informe o motivo da reprovação...'}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white min-h-[100px]"
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowApprovalForm(null)}
+                    className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    disabled={isUpdating || (showApprovalForm === 'reject' && !feedback)}
+                    onClick={handleStatusAction}
+                    className={`px-6 py-2 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 ${
+                      showApprovalForm === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : (showApprovalForm === 'approve' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)}
+                    {showApprovalForm === 'approve' ? 'Aprovar Agora' : 'Reprovar Vistoria'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
@@ -250,11 +385,20 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Foto Fachada */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">Foto 01 - Fachada</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">Foto 01 - Fachada</h4>
+                  {isRejected('foto_fachada') && (
+                    <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase">
+                      <AlertTriangle className="w-3 h-3" /> Reprovada
+                    </span>
+                  )}
+                </div>
                 {item.foto_fachada ? (
                   <div 
                     onClick={() => setSelectedPhoto({ url: item.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
-                    className="aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-md group relative cursor-pointer"
+                    className={`aspect-video rounded-2xl overflow-hidden border-2 shadow-md group relative cursor-pointer transition-all ${
+                      isRejected('foto_fachada') ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-gray-100 dark:border-gray-800'
+                    }`}
                   >
                     <img 
                       src={item.foto_fachada} 
@@ -289,11 +433,20 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
 
               {/* Foto Placa */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">Foto 02 - Placa</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">Foto 02 - Placa</h4>
+                  {isRejected('foto_placa') && (
+                    <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase">
+                      <AlertTriangle className="w-3 h-3" /> Reprovada
+                    </span>
+                  )}
+                </div>
                 {item.foto_placa ? (
                   <div 
                     onClick={() => setSelectedPhoto({ url: item.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
-                    className="aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-md group relative cursor-pointer"
+                    className={`aspect-video rounded-2xl overflow-hidden border-2 shadow-md group relative cursor-pointer transition-all ${
+                      isRejected('foto_placa') ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-gray-100 dark:border-gray-800'
+                    }`}
                   >
                     <img 
                       src={item.foto_placa} 
@@ -369,13 +522,22 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
 
                               return (
                                 <div key={field.id} className="space-y-2">
+                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate" title={field.label}>
                                     {field.label}
                                   </label>
-                                  <div 
-                                    onClick={() => setSelectedPhoto({ url: photoData, fieldId: field.id, label: field.label })}
-                                    className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm group cursor-pointer"
-                                  >
+                                  {isRejected(field.id) && (
+                                    <span className="flex items-center gap-1 text-[8px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded-full uppercase">
+                                      <AlertTriangle className="w-2 h-2" /> Reprova.
+                                    </span>
+                                  )}
+                                </div>
+                                <div 
+                                  onClick={() => setSelectedPhoto({ url: photoData, fieldId: field.id, label: field.label })}
+                                  className={`relative aspect-video rounded-xl overflow-hidden border-2 shadow-sm group cursor-pointer transition-all ${
+                                    isRejected(field.id) ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'border-gray-100 dark:border-gray-800'
+                                  }`}
+                                >
                                     <img 
                                       src={photoData} 
                                       alt={field.label} 
@@ -413,7 +575,21 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex justify-end shrink-0">
+        <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex justify-end gap-3 shrink-0">
+          {canDelete && onDelete && (
+            <button 
+              onClick={async () => {
+                if (confirm('Tem certeza que deseja excluir esta vistoria COMPLETA? Esta ação não pode ser desfeita.')) {
+                  await onDelete(item.id!);
+                  onClose();
+                }
+              }}
+              className="px-6 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir Vistoria
+            </button>
+          )}
           <button 
             onClick={onClose}
             className="px-6 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
@@ -473,6 +649,30 @@ export default function VistoriaRFView({ item, onClose, onUpdate, canEdit = fals
                       <ExternalLink className="w-5 h-5" />
                       Abrir Original
                     </button>
+
+                    {onApprove && onUpdate && (
+                      <button 
+                        onClick={() => togglePhotoRejection(selectedPhoto.fieldId)}
+                        disabled={isUpdating}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all shadow-xl disabled:opacity-50 ${
+                          isRejected(selectedPhoto.fieldId)
+                            ? 'bg-green-600 text-white hover:bg-green-700 animate-in fade-in duration-300'
+                            : 'bg-red-600 text-white hover:bg-red-700 animate-in fade-in duration-300'
+                        }`}
+                      >
+                        {isRejected(selectedPhoto.fieldId) ? (
+                          <>
+                            <CheckCircle2 className="w-5 h-5" />
+                            Aprovar Foto
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-5 h-5" />
+                            Reprovar Foto
+                          </>
+                        )}
+                      </button>
+                    )}
 
                     {canEdit && onUpdate && (
                       <>

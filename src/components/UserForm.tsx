@@ -15,7 +15,8 @@ export default function UserForm({ onClose }: UserFormProps) {
   const [permissions, setPermissions] = useState<UserPermissions>({
     inventario: true,
     vistoria: true,
-    materiais: true
+    materiais: true,
+    aprovacao: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +164,18 @@ export default function UserForm({ onClose }: UserFormProps) {
                   checked={permissions.materiais} 
                   onChange={() => togglePermission('materiais')}
                   className="w-5 h-5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 bg-white dark:bg-gray-900"
+                />
+              </label>
+              <label className="flex items-center justify-between p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors border border-indigo-100 dark:border-indigo-900/30">
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200">4. Aprovação de Vistorias</span>
+                  <span className="text-[10px] text-indigo-500 dark:text-indigo-400">Permite aprovar/reprovar relatórios RF</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={permissions.aprovacao} 
+                  onChange={() => togglePermission('aprovacao')}
+                  className="w-5 h-5 rounded border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 bg-white dark:bg-gray-900"
                 />
               </label>
             </div>

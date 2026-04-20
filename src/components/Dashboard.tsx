@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { User } from 'firebase/auth';
 import { 
   collection, 
   onSnapshot, 
   query, 
   orderBy,
+  limit,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -36,7 +37,8 @@ import {
   Clock,
   Database,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -50,15 +52,18 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import InventoryForm from './InventoryForm';
+
+const InventoryForm = lazy(() => import('./InventoryForm'));
+const InventoryView = lazy(() => import('./InventoryView'));
+const VistoriaRFForm = lazy(() => import('./VistoriaRFForm'));
+const VistoriaRFView = lazy(() => import('./VistoriaRFView'));
+const UserForm = lazy(() => import('./UserForm'));
+const MaterialManagement = lazy(() => import('./MaterialManagement'));
+const VistoriaApprovalTab = lazy(() => import('./VistoriaApprovalTab'));
+
 import InventoryTable from './InventoryTable';
-import InventoryView from './InventoryView';
-import VistoriaRFForm from './VistoriaRFForm';
 import VistoriaRFTable from './VistoriaRFTable';
-import VistoriaRFView from './VistoriaRFView';
 import UserManagement from './UserManagement';
-import UserForm from './UserForm';
-import MaterialManagement from './MaterialManagement';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
@@ -78,7 +83,9 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [vistorias, setVistorias] = useState<VistoriaRF[]>([]);
   const [materials, setMaterials] = useState<MasterMaterial[]>([]);
-  const [activeTab, setActiveTab] = useState<'home' | 'inventory' | 'users' | 'vistoria' | 'materias'>(
+  const [itemsLimit, setItemsLimit] = useState(30);
+  const [vistoriasLimit, setVistoriasLimit] = useState(30);
+  const [activeTab, setActiveTab] = useState<'home' | 'inventory' | 'users' | 'vistoria' | 'materias' | 'approval'>(
     'home'
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -95,6 +102,8 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
   const [isExporting, setIsExporting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [inventoryFilter, setInventoryFilter] = useState<'all' | 'open' | 'finalized'>('all');
+  const [typeChartFilter, setTypeChartFilter] = useState<'all' | 'open' | 'finalized'>('all');
+  const [motiveChartFilter, setMotiveChartFilter] = useState<'all' | 'open' | 'finalized'>('all');
 
   const handleImportMasterMaterials = async (materialsToImport: Omit<MasterMaterial, 'id'>[]) => {
     if (!user?.uid) return;
@@ -111,7 +120,11 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
   };
 
   useEffect(() => {
-    const q = query(collection(db, 'inventory'), orderBy('data_entrada', 'desc'));
+    const q = query(
+      collection(db, 'inventory'), 
+      orderBy('data_entrada', 'desc'),
+      limit(itemsLimit)
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const inventoryData: InventoryItem[] = [];
       snapshot.forEach((doc) => {
@@ -120,7 +133,11 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
       setItems(inventoryData);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory', user));
 
-    const qVistoria = query(collection(db, 'vistorias_rf'), orderBy('data', 'desc'));
+    const qVistoria = query(
+      collection(db, 'vistorias_rf'), 
+      orderBy('data', 'desc'),
+      limit(vistoriasLimit)
+    );
     const unsubscribeVistoria = onSnapshot(qVistoria, (snapshot) => {
       const vistoriaData: VistoriaRF[] = [];
       snapshot.forEach((doc) => {
@@ -148,7 +165,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
       unsubscribeVistoria();
       unsubscribeMaterials();
     };
-  }, [user?.uid]);
+  }, [user?.uid, itemsLimit, vistoriasLimit]);
 
   useEffect(() => {
     if (viewingVistoria) {
@@ -255,6 +272,35 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
         ...data,
         updatedBy: user.uid,
         updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'vistorias_rf', user);
+    }
+  };
+
+  const handleApproveVistoria = async (id: string, feedback: string) => {
+    try {
+      const vistoriaRef = doc(db, 'vistorias_rf', id);
+      await updateDoc(vistoriaRef, {
+        status: 'approved',
+        approvalFeedback: feedback,
+        approvedBy: user.uid,
+        approvedAt: serverTimestamp(),
+        rejectedPhotos: []
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'vistorias_rf', user);
+    }
+  };
+
+  const handleRejectVistoria = async (id: string, feedback: string) => {
+    try {
+      const vistoriaRef = doc(db, 'vistorias_rf', id);
+      await updateDoc(vistoriaRef, {
+        status: 'rejected',
+        approvalFeedback: feedback,
+        approvedBy: user.uid,
+        approvedAt: serverTimestamp()
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'vistorias_rf', user);
@@ -785,6 +831,20 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
               Materiais
             </button>
           )}
+
+          {(profile.role === 'admin' || profile.permissions?.aprovacao) && (
+            <button
+              onClick={() => { setActiveTab('approval'); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                activeTab === 'approval' 
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold shadow-sm' 
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              <ShieldCheck className="w-5 h-5" />
+              Aprovar Vistoria
+            </button>
+          )}
           
           {profile.role === 'admin' && (
             <button
@@ -837,7 +897,8 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                 {activeTab === 'home' ? 'Dashboard' :
                  activeTab === 'inventory' ? 'Materiais' : 
                  activeTab === 'vistoria' ? 'Vistoria RF' : 
-                 activeTab === 'materias' ? 'Cadastro' : 'Usuários'}
+                 activeTab === 'materias' ? 'Cadastro' : 
+                 activeTab === 'approval' ? 'Aprovar Vistoria' : 'Usuários'}
               </h2>
             </div>
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1 md:mx-2 hidden md:block" />
@@ -1034,8 +1095,8 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Status do Inventário</h4>
-                    <div className="h-[250px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[250px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                           <Pie
                             data={[
@@ -1076,15 +1137,54 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Distribuição por Tipo</h4>
-                    <div className="h-[250px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm relative">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-white">Distribuição por Tipo</h4>
+                      <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg">
+                        <button
+                          onClick={() => setTypeChartFilter('all')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            typeChartFilter === 'all' 
+                              ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          TODOS
+                        </button>
+                        <button
+                          onClick={() => setTypeChartFilter('open')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            typeChartFilter === 'open' 
+                              ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          ABERTO
+                        </button>
+                        <button
+                          onClick={() => setTypeChartFilter('finalized')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            typeChartFilter === 'finalized' 
+                              ? 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          FINALIZ.
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-[250px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                           <Pie
                             data={(() => {
                               const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
-                              items.forEach(item => {
+                              const dataset = items.filter(i => {
+                                if (typeChartFilter === 'open') return !i.data_saida;
+                                if (typeChartFilter === 'finalized') return !!i.data_saida;
+                                return true;
+                              });
+                              dataset.forEach(item => {
                                 const key = item.tipo || 'Não Definido';
                                 counts[key] = (counts[key] || 0) + 1;
                               });
@@ -1106,7 +1206,12 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                                 'Não Definido': '#8b5cf6'
                               };
                               const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
-                              items.forEach(item => {
+                              const dataset = items.filter(i => {
+                                if (typeChartFilter === 'open') return !i.data_saida;
+                                if (typeChartFilter === 'finalized') return !!i.data_saida;
+                                return true;
+                              });
+                              dataset.forEach(item => {
                                 const key = item.tipo || 'Não Definido';
                                 counts[key] = (counts[key] || 0) + 1;
                               });
@@ -1143,10 +1248,44 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Distribuição por Motivo</h4>
-                    <div className="h-[250px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm relative">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-white">Distribuição por Motivo</h4>
+                      <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg">
+                        <button
+                          onClick={() => setMotiveChartFilter('all')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            motiveChartFilter === 'all' 
+                              ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          TODOS
+                        </button>
+                        <button
+                          onClick={() => setMotiveChartFilter('open')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            motiveChartFilter === 'open' 
+                              ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          ABERTO
+                        </button>
+                        <button
+                          onClick={() => setMotiveChartFilter('finalized')}
+                          className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                            motiveChartFilter === 'finalized' 
+                              ? 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 shadow-sm' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          FINALIZ.
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-[250px] w-full" style={{ minWidth: 0, minHeight: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                           <Pie
                             data={(() => {
@@ -1154,7 +1293,13 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                               const counts: Record<string, number> = {};
                               categories.forEach(cat => counts[cat] = 0);
                               
-                              items.forEach(item => {
+                              const dataset = items.filter(i => {
+                                if (motiveChartFilter === 'open') return !i.data_saida;
+                                if (motiveChartFilter === 'finalized') return !!i.data_saida;
+                                return true;
+                              });
+
+                              dataset.forEach(item => {
                                 const key = item.motivo || 'Outros';
                                 counts[key] = (counts[key] || 0) + 1;
                               });
@@ -1181,7 +1326,14 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                               const categories = ['ZELADORIA', 'ACESSO', 'EHS-EDB', 'RFI', 'SOBRESSALENTE', 'Outros'];
                               const counts: Record<string, number> = {};
                               categories.forEach(cat => counts[cat] = 0);
-                              items.forEach(item => {
+
+                              const dataset = items.filter(i => {
+                                if (motiveChartFilter === 'open') return !i.data_saida;
+                                if (motiveChartFilter === 'finalized') return !!i.data_saida;
+                                return true;
+                              });
+
+                              dataset.forEach(item => {
                                 const key = item.motivo || 'Outros';
                                 counts[key] = (counts[key] || 0) + 1;
                               });
@@ -1328,6 +1480,17 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                   canDelete={profile.role === 'admin'}
                   canEdit={profile.role !== 'viewer'}
                 />
+                
+                {items.length >= itemsLimit && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => setItemsLimit(prev => prev + 50)}
+                      className="px-8 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-2xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+                    >
+                      Carregar mais sites...
+                    </button>
+                  </div>
+                )}
               </motion.div>
             ) : activeTab === 'vistoria' ? (
               <motion.div
@@ -1355,6 +1518,17 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                   canDelete={profile.role === 'admin'}
                   canEdit={profile.role !== 'viewer'}
                 />
+                
+                {vistorias.length >= vistoriasLimit && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => setVistoriasLimit(prev => prev + 50)}
+                      className="px-8 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-2xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+                    >
+                      Carregar mais vistorias...
+                    </button>
+                  </div>
+                )}
               </motion.div>
             ) : activeTab === 'materias' ? (
               <motion.div
@@ -1363,15 +1537,36 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <MaterialManagement 
-                  materials={materials}
-                  onAdd={handleSaveMasterMaterial}
-                  onUpdate={handleUpdateMasterMaterial}
-                  onDelete={handleDeleteMasterMaterial}
-                  onImportBase={handleImportMasterMaterials}
-                  canEdit={profile.role !== 'viewer'}
-                  canDelete={profile.role === 'admin'}
-                />
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>}>
+                  <MaterialManagement 
+                    materials={materials}
+                    onAdd={handleSaveMasterMaterial}
+                    onUpdate={handleUpdateMasterMaterial}
+                    onDelete={handleDeleteMasterMaterial}
+                    onImportBase={handleImportMasterMaterials}
+                    canEdit={profile.role !== 'viewer'}
+                    canDelete={profile.role === 'admin'}
+                  />
+                </Suspense>
+              </motion.div>
+            ) : activeTab === 'approval' ? (
+              <motion.div
+                key="approval"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>}>
+                  <VistoriaApprovalTab 
+                    vistorias={vistorias}
+                    onApprove={handleApproveVistoria}
+                    onReject={handleRejectVistoria}
+                    onDelete={handleDeleteVistoria}
+                    onView={(v) => setViewingVistoria(v)}
+                    currentUser={user}
+                    profile={profile}
+                  />
+                </Suspense>
               </motion.div>
             ) : (
               <motion.div
@@ -1390,64 +1585,79 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
       {/* Form Modal */}
       <AnimatePresence>
         {viewingItem && (
-          <InventoryView 
-            item={viewingItem}
-            onClose={() => setViewingItem(null)}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-white" /></div>}>
+            <InventoryView 
+              item={viewingItem}
+              onClose={() => setViewingItem(null)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {isFormOpen && (
-          <InventoryForm 
-            item={editingItem} 
-            materials={materials}
-            onClose={() => {
-              setIsFormOpen(false);
-              setEditingItem(null);
-              setSaveError(null);
-            }} 
-            onSave={handleSaveItem}
-            isSaving={isSaving}
-            saveError={saveError}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-white" /></div>}>
+            <InventoryForm 
+              item={editingItem} 
+              materials={materials}
+              onClose={() => {
+                setIsFormOpen(false);
+                setEditingItem(null);
+                setSaveError(null);
+              }} 
+              onSave={handleSaveItem}
+              isSaving={isSaving}
+              saveError={saveError}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
       {/* Vistoria Form Modal */}
       <AnimatePresence>
         {viewingVistoria && (
-          <VistoriaRFView 
-            item={viewingVistoria}
-            onClose={() => setViewingVistoria(null)}
-            onUpdate={handleUpdateVistoria}
-            canEdit={profile.role !== 'viewer'}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-white" /></div>}>
+            <VistoriaRFView 
+              item={viewingVistoria}
+              onClose={() => setViewingVistoria(null)}
+              onUpdate={handleUpdateVistoria}
+              onDelete={handleDeleteVistoria}
+              onApprove={handleApproveVistoria}
+              onReject={handleRejectVistoria}
+              canEdit={profile.role !== 'viewer'}
+              canDelete={profile.role === 'admin'}
+              canApprove={profile.role === 'admin' || profile.permissions?.aprovacao}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {isVistoriaFormOpen && (
-          <VistoriaRFForm 
-            item={editingVistoria} 
-            onClose={() => {
-              setIsVistoriaFormOpen(false);
-              setEditingVistoria(null);
-              setSaveError(null);
-            }} 
-            onSave={handleSaveVistoria}
-            isSaving={isSaving}
-            saveError={saveError}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-white" /></div>}>
+            <VistoriaRFForm 
+              item={editingVistoria} 
+              onClose={() => {
+                setIsVistoriaFormOpen(false);
+                setEditingVistoria(null);
+                setSaveError(null);
+              }} 
+              onSave={handleSaveVistoria}
+              isSaving={isSaving}
+              saveError={saveError}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
       {/* User Form Modal */}
       <AnimatePresence>
         {isUserFormOpen && (
-          <UserForm 
-            onClose={() => setIsUserFormOpen(false)}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-white" /></div>}>
+            <UserForm 
+              onClose={() => setIsUserFormOpen(false)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>

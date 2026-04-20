@@ -89,6 +89,15 @@ export default function VistoriaRFTable({
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-900 dark:text-white">{item.site}</span>
+                        {item.status === 'submitted' && (
+                          <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">Enviado</span>
+                        )}
+                        {item.status === 'approved' && (
+                          <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Aprovado</span>
+                        )}
+                        {item.status === 'rejected' && (
+                          <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Reprovado</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                         <Calendar className="w-3 h-3" />
@@ -212,7 +221,12 @@ export default function VistoriaRFTable({
                   onChange={() => onSelect(item.id!)}
                 />
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-bold text-gray-900 dark:text-white">{item.site}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-gray-900 dark:text-white">{item.site}</span>
+                    {item.status === 'submitted' && (
+                      <span className="bg-indigo-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse">ENVIADO</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                     <Calendar className="w-3 h-3" />
                     {item.data ? format(new Date(item.data), 'dd/MM/yy') : '-'}

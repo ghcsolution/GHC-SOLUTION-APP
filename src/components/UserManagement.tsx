@@ -74,6 +74,7 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
         inventario: user.permissions?.inventario ?? true,
         vistoria: user.permissions?.vistoria ?? true,
         materiais: user.permissions?.materiais ?? true,
+        aprovacao: user.permissions?.aprovacao ?? false,
         ...user.permissions,
         [feature]: value
       };
@@ -132,6 +133,7 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Inventário</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Vistoria RF</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Materiais</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center text-indigo-600">Aprovação</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
@@ -192,6 +194,15 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                       className="w-5 h-5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-800"
                     />
                   </td>
+                  <td className="px-6 py-6 text-center border-l border-indigo-50 dark:border-indigo-900/30 bg-indigo-50/10">
+                    <input 
+                      type="checkbox" 
+                      checked={user.role === 'admin' || (user.permissions?.aprovacao ?? false)}
+                      disabled={user.uid === currentUser.uid || user.role === 'admin'}
+                      onChange={(e) => handlePermissionChange(user.uid, 'aprovacao', e.target.checked)}
+                      className="w-5 h-5 rounded border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-800"
+                    />
+                  </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center justify-between gap-4">
                       {user.uid === currentUser.uid ? (
@@ -249,6 +260,9 @@ export default function UserManagement({ currentUser, searchTerm }: UserManageme
                   </td>
                   <td className="px-6 py-6 text-center">
                     <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.materiais ? 'bg-green-500 dark:bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                  </td>
+                  <td className="px-6 py-6 text-center bg-indigo-50/10">
+                    <div className={`w-3 h-3 rounded-full mx-auto ${invite.permissions.aprovacao ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center justify-between gap-4">

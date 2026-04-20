@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VistoriaRF } from '../types/inventory';
-import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Send, AlertTriangle } from 'lucide-react';
+import { X, Save, Camera, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, Maximize2, Edit2, Trash2, ExternalLink, Send, AlertTriangle, RefreshCcw, CloudUpload, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 import { useRef } from 'react';
@@ -9,7 +9,7 @@ import { ImageLightbox } from './ImageLightbox';
 interface VistoriaRFFormProps {
   item: VistoriaRF | null;
   onClose: () => void;
-  onSave: (item: Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>) => void;
+  onSave: (item: Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>, stayOpen?: boolean) => void;
   isSaving?: boolean;
   saveError?: string | null;
 }
@@ -73,6 +73,51 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
     }
   );
 
+  const [hasDraft, setHasDraft] = useState(false);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
+
+  // Persistence logic for mobile stability
+  useEffect(() => {
+    const draftKey = `vistoria_draft_${item?.id || 'new'}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+      setHasDraft(true);
+    }
+  }, [item?.id]);
+
+  useEffect(() => {
+    const draftKey = `vistoria_draft_${item?.id || 'new'}`;
+    // Only save if there's actual data to avoid overwriting with empty
+    if (formData.site || Object.keys(formData.photos || {}).length > 0 || formData.foto_fachada || formData.foto_placa) {
+      localStorage.setItem(draftKey, JSON.stringify(formData));
+      setLastAutoSave(new Date());
+      setShowAutoSaveToast(true);
+      const timer = setTimeout(() => setShowAutoSaveToast(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [formData, item?.id]);
+
+  const restoreDraft = () => {
+    const draftKey = `vistoria_draft_${item?.id || 'new'}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setFormData(parsed);
+        setHasDraft(false);
+      } catch (e) {
+        console.error("Failed to restore draft", e);
+      }
+    }
+  };
+
+  const clearDraft = () => {
+    const draftKey = `vistoria_draft_${item?.id || 'new'}`;
+    localStorage.removeItem(draftKey);
+    setHasDraft(false);
+  };
+
   const isFieldRequired = (fieldId: string) => {
     return formData.requiredFields?.includes(fieldId);
   };
@@ -132,9 +177,9 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
     reader.onloadend = async () => {
       const compressed = await compressImage(reader.result as string);
       
-      if (fieldId === 'fachada') {
+      if (fieldId === 'foto_fachada') {
         setFormData(prev => ({ ...prev, foto_fachada: compressed }));
-      } else if (fieldId === 'placa') {
+      } else if (fieldId === 'foto_placa') {
         setFormData(prev => ({ ...prev, foto_placa: compressed }));
       } else {
         setFormData(prev => ({ 
@@ -186,15 +231,64 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Registre as fotos de fachada e placa do site.</p>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-colors text-gray-400 dark:text-gray-500"
-          >
-            <X className="w-6 h-6" />
-          </button>
+            <div className="flex items-center gap-4">
+              <AnimatePresence>
+                {showAutoSaveToast && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg border border-green-100 dark:border-green-800"
+                  >
+                    <Check className="w-3 h-3" /> Auto-salvo
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <button 
+                onClick={onClose}
+                className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-colors text-gray-400 dark:text-gray-500"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8" onClick={(e) => e.stopPropagation()}>
+          {/* Draft Notification */}
+          {hasDraft && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-xl flex items-center justify-center shrink-0">
+                  <RefreshCcw className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Rascunho Encontrado</p>
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400">Existe um rascunho anterior não salvo para este site.</p>
+                </div>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button 
+                  type="button"
+                  onClick={restoreDraft}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 transition-all"
+                >
+                  Restaurar
+                </button>
+                <button 
+                  type="button"
+                  onClick={clearDraft}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-gray-800 text-gray-500 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all"
+                >
+                  Ignorar
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Informações Gerais */}
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b dark:border-gray-800 pb-2">Informações Gerais</h3>
@@ -375,14 +469,14 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 01 - Fachada</label>
-                {isRejected('fachada') && (
+                {isRejected('foto_fachada') && (
                   <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase animate-pulse">
                     <AlertTriangle className="w-3 h-3" /> Foto Reprovada
                   </span>
                 )}
               </div>
               <div className={`relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 flex flex-col items-center justify-center overflow-hidden group transition-all ${
-                isRejected('fachada') 
+                isRejected('foto_fachada') 
                   ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                   : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
               }`}>
@@ -397,7 +491,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
-                        onClick={() => setSelectedPhoto({ url: formData.foto_fachada!, fieldId: 'fachada', label: 'Fachada' })}
+                        onClick={() => setSelectedPhoto({ url: formData.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
@@ -412,7 +506,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                       </button>
                       <label className="cursor-pointer p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                        <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'fachada')} />
+                        <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'foto_fachada')} />
                       </label>
                       <button 
                         type="button"
@@ -426,10 +520,10 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                 ) : (
                   <label className="cursor-pointer flex flex-col items-center gap-3 p-8 text-center">
                     <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                      {isUploading.fachada ? <Loader2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin" /> : <Camera className="w-6 h-6 text-gray-400 dark:text-gray-500" />}
+                      {isUploading.foto_fachada ? <Loader2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin" /> : <Camera className="w-6 h-6 text-gray-400 dark:text-gray-500" />}
                     </div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Tirar foto ou selecionar</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'fachada')} />
+                    <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'foto_fachada')} />
                   </label>
                 )}
               </div>
@@ -439,14 +533,14 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Foto 02 - Placa</label>
-                {isRejected('placa') && (
+                {isRejected('foto_placa') && (
                   <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase animate-pulse">
                     <AlertTriangle className="w-3 h-3" /> Foto Reprovada
                   </span>
                 )}
               </div>
               <div className={`relative aspect-video bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 flex flex-col items-center justify-center overflow-hidden group transition-all ${
-                isRejected('placa') 
+                isRejected('foto_placa') 
                   ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                   : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
               }`}>
@@ -461,7 +555,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
-                        onClick={() => setSelectedPhoto({ url: formData.foto_placa!, fieldId: 'placa', label: 'Placa' })}
+                        onClick={() => setSelectedPhoto({ url: formData.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
@@ -476,7 +570,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                       </button>
                       <label className="cursor-pointer p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform">
                         <Camera className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                        <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'placa')} />
+                        <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'foto_placa')} />
                       </label>
                       <button 
                         type="button"
@@ -490,10 +584,10 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                 ) : (
                   <label className="cursor-pointer flex flex-col items-center gap-3 p-8 text-center">
                     <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                      {isUploading.placa ? <Loader2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin" /> : <Camera className="w-6 h-6 text-gray-400 dark:text-gray-500" />}
+                      {isUploading.foto_placa ? <Loader2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin" /> : <Camera className="w-6 h-6 text-gray-400 dark:text-gray-500" />}
                     </div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Tirar foto ou selecionar</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'placa')} />
+                    <input type="file" accept="image/*" className="hidden" onChange={e => handlePhotoUpload(e, 'foto_placa')} />
                   </label>
                 )}
               </div>
@@ -629,14 +723,42 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
         <footer className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 flex flex-col sm:flex-row justify-end gap-3 shrink-0">
           <button 
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              if (confirm('Deseja descartar as alterações e o rascunho?')) {
+                clearDraft();
+                onClose();
+              } else {
+                onClose();
+              }
+            }}
             className="px-6 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           >
             Cancelar
           </button>
           
           <button 
-            onClick={() => onSave(formData)}
+            type="button"
+            onClick={() => {
+              if (!formData.site) {
+                alert('Defina o Site para sincronizar com a nuvem.');
+                return;
+              }
+              onSave(formData, true);
+              clearDraft();
+            }}
+            disabled={isSaving || Object.values(isUploading).some(v => v)}
+            className="px-6 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-2 disabled:opacity-70 border border-indigo-100 dark:border-indigo-800"
+            title="Salva na nuvem e mantém a janela aberta"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+            Sincronizar Cloud
+          </button>
+
+          <button 
+            onClick={() => {
+              onSave(formData);
+              clearDraft();
+            }}
             disabled={isSaving || Object.values(isUploading).some(v => v)}
             className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
           >
@@ -652,6 +774,7 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                 return;
               }
               onSave({ ...formData, status: 'submitted' });
+              clearDraft();
             }}
             disabled={isSaving || Object.values(isUploading).some(v => v)}
             className="px-8 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
@@ -739,9 +862,9 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                     <p className="text-red-900 dark:text-red-400 font-bold text-sm">Excluir esta foto?</p>
                     <button 
                       onClick={() => {
-                        if (selectedPhoto.fieldId === 'fachada') {
+                        if (selectedPhoto.fieldId === 'foto_fachada') {
                           setFormData({...formData, foto_fachada: ''});
-                        } else if (selectedPhoto.fieldId === 'placa') {
+                        } else if (selectedPhoto.fieldId === 'foto_placa') {
                           setFormData({...formData, foto_placa: ''});
                         } else {
                           const newPhotos = { ...formData.photos };

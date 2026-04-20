@@ -228,7 +228,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
     }
   };
 
-  const handleSaveVistoria = async (vistoria: Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>) => {
+  const handleSaveVistoria = async (vistoria: Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>, stayOpen = false) => {
     setSaveError(null);
     setIsSaving(true);
     try {
@@ -240,14 +240,22 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
           updatedAt: serverTimestamp()
         });
       } else {
-        await addDoc(collection(db, 'vistorias_rf'), {
+        const docRef = await addDoc(collection(db, 'vistorias_rf'), {
           ...vistoria,
           createdBy: user.uid,
           createdAt: serverTimestamp()
         });
+        
+        if (stayOpen) {
+          // If we stay open, we need to treat the next save as an update
+          setEditingVistoria({ id: docRef.id, ...vistoria } as VistoriaRF);
+        }
       }
-      setIsVistoriaFormOpen(false);
-      setEditingVistoria(null);
+      
+      if (!stayOpen) {
+        setIsVistoriaFormOpen(false);
+        setEditingVistoria(null);
+      }
     } catch (error: any) {
       console.error("Erro ao salvar vistoria:", error);
       setSaveError(error.message || "Erro ao salvar vistoria.");

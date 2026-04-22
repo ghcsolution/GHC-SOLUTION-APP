@@ -244,24 +244,44 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
     setSaveError(null);
     setIsSaving(true);
     try {
-      if (editingVistoria?.id) {
-        const vistoriaRef = doc(db, 'vistorias_rf', editingVistoria.id);
+      // Separamos os dados da vistoria das fotos reais para não estourar o limite de 1MB do documento
+      const headerData = { ...vistoria };
+      const photosMap = headerData.photos || {};
+      delete headerData.photos; // Não salvamos o mapa de fotos no documento principal
+
+      let vistoriaId = editingVistoria?.id;
+
+      if (vistoriaId) {
+        const vistoriaRef = doc(db, 'vistorias_rf', vistoriaId);
         await updateDoc(vistoriaRef, {
-          ...vistoria,
+          ...headerData,
           updatedBy: user.uid,
           updatedAt: serverTimestamp()
         });
       } else {
         const docRef = await addDoc(collection(db, 'vistorias_rf'), {
-          ...vistoria,
+          ...headerData,
           createdBy: user.uid,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          status: 'pending'
         });
+        vistoriaId = docRef.id;
         
         if (stayOpen) {
-          // If we stay open, we need to treat the next save as an update
-          setEditingVistoria({ id: docRef.id, ...vistoria } as VistoriaRF);
+          setEditingVistoria({ id: vistoriaId, ...headerData } as VistoriaRF);
         }
+      }
+
+      // Se houver fotos novas no mapa (ao finalizar ou clicar em exportar), garantimos que sejam salvas
+      if (vistoriaId && photosMap && Object.keys(photosMap).length > 0) {
+        const batch = writeBatch(db);
+        Object.entries(photosMap).forEach(([fieldId, base64]) => {
+          if (base64 && base64.startsWith('data:image')) {
+            const photoRef = doc(db, 'vistorias_rf', vistoriaId!, 'photo_data', fieldId);
+            batch.set(photoRef, { data: base64, updatedAt: serverTimestamp() });
+          }
+        });
+        await batch.commit();
       }
       
       if (!stayOpen) {
@@ -273,6 +293,24 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
       setSaveError(error.message || "Erro ao salvar vistoria.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const syncVistoriaPhoto = async (vistoriaId: string, fieldId: string, base64: string) => {
+    try {
+      const photoRef = doc(db, 'vistorias_rf', vistoriaId, 'photo_data', fieldId);
+      await setDoc(photoRef, { 
+        data: base64, 
+        updatedAt: serverTimestamp() 
+      });
+      // Também atualizamos o cabeçalho para registrar que a foto existe
+      const vistoriaRef = doc(db, 'vistorias_rf', vistoriaId);
+      await updateDoc(vistoriaRef, {
+        [`photos_presence.${fieldId}`]: true,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Erro na sincronização automática da foto:", error);
     }
   };
 
@@ -556,6 +594,24 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
         const item = itemsToExport[i];
         const rowIndex = i + 2;
         
+        // Fetch photos from subcollection for this item
+        const itemPhotos: Record<string, string> = { ...item.photos };
+        let itemFachada = item.foto_fachada;
+        let itemPlaca = item.foto_placa;
+
+        try {
+          const photoDataRef = collection(db, 'vistorias_rf', item.id!, 'photo_data');
+          const photoSnapshot = await getDocs(photoDataRef);
+          photoSnapshot.forEach(photoDoc => {
+            const data = photoDoc.data().data;
+            if (photoDoc.id === 'foto_fachada') itemFachada = data;
+            else if (photoDoc.id === 'foto_placa') itemPlaca = data;
+            else itemPhotos[photoDoc.id] = data;
+          });
+        } catch (err) {
+          console.error(`Erro ao buscar fotos para exportação do item ${item.id}:`, err);
+        }
+
         const rowData: any = {
           site: item.site,
           data: item.data ? format(new Date(item.data), 'dd/MM/yyyy') : '-',
@@ -573,13 +629,13 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
           endereco: item.endereco || '-',
           numero: item.numero || '-',
           bairro: item.bairro || '-',
-          foto_fachada: item.foto_fachada ? 'Imagem' : '-',
-          foto_placa: item.foto_placa ? 'Imagem' : '-'
+          foto_fachada: itemFachada ? 'Imagem' : '-',
+          foto_placa: itemPlaca ? 'Imagem' : '-'
         };
 
         VISTORIA_PHOTO_SECTIONS.forEach(section => {
           section.fields.forEach(field => {
-            rowData[`photo_${field.id}`] = item.photos?.[field.id] ? 'Imagem' : '-';
+            rowData[`photo_${field.id}`] = itemPhotos[field.id] ? 'Imagem' : '-';
           });
         });
 
@@ -606,15 +662,15 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
         };
 
         // Add Foto Fachada
-        if (item.foto_fachada) addImageToCell(item.foto_fachada, 16);
+        if (itemFachada) addImageToCell(itemFachada, 16);
         // Add Foto Placa
-        if (item.foto_placa) addImageToCell(item.foto_placa, 17);
+        if (itemPlaca) addImageToCell(itemPlaca, 17);
 
         // Add all other photos
         let currentPhotoCol = 18;
         VISTORIA_PHOTO_SECTIONS.forEach(section => {
           section.fields.forEach(field => {
-            const photoData = item.photos?.[field.id];
+            const photoData = itemPhotos[field.id];
             if (photoData) {
               addImageToCell(photoData, currentPhotoCol);
             }
@@ -663,6 +719,24 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
 
       // Add photos on separate pages for each item
       for (const item of itemsToExport) {
+        // Fetch photos from subcollection for this item
+        const itemPhotos: Record<string, string> = { ...item.photos };
+        let itemFachada = item.foto_fachada;
+        let itemPlaca = item.foto_placa;
+
+        try {
+          const photoDataRef = collection(db, 'vistorias_rf', item.id!, 'photo_data');
+          const photoSnapshot = await getDocs(photoDataRef);
+          photoSnapshot.forEach(photoDoc => {
+            const data = photoDoc.data().data;
+            if (photoDoc.id === 'foto_fachada') itemFachada = data;
+            else if (photoDoc.id === 'foto_placa') itemPlaca = data;
+            else itemPhotos[photoDoc.id] = data;
+          });
+        } catch (err) {
+          console.error(`Erro ao buscar fotos para PDF do item ${item.id}:`, err);
+        }
+
         doc.addPage();
         doc.setFontSize(16);
         doc.text(`Relatório de Vistoria: ${item.site}`, 14, 20);
@@ -699,12 +773,12 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
           }
         };
 
-        addPhotoWithLabel('Foto 01 - Fachada:', item.foto_fachada);
-        addPhotoWithLabel('Foto 02 - Placa:', item.foto_placa);
+        addPhotoWithLabel('Foto 01 - Fachada:', itemFachada);
+        addPhotoWithLabel('Foto 02 - Placa:', itemPlaca);
 
         // Detailed Photos
         VISTORIA_PHOTO_SECTIONS.forEach(section => {
-          const sectionPhotos = section.fields.filter(f => item.photos?.[f.id]);
+          const sectionPhotos = section.fields.filter(f => itemPhotos[f.id]);
           if (sectionPhotos.length > 0) {
             if (currentY > 260) {
               doc.addPage();
@@ -716,7 +790,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
             currentY += 10;
 
             sectionPhotos.forEach(field => {
-              const photo = item.photos?.[field.id];
+              const photo = itemPhotos[field.id];
               if (photo) {
                 addPhotoWithLabel(field.label, photo);
               }
@@ -1663,6 +1737,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                 setSaveError(null);
               }} 
               onSave={handleSaveVistoria}
+              onSyncPhoto={syncVistoriaPhoto}
               isSaving={isSaving}
               saveError={saveError}
             />

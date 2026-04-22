@@ -4,9 +4,11 @@ import { X, MapPin, Calendar, Camera, Image as ImageIcon, ChevronDown, ChevronUp
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 import { ImageLightbox } from './ImageLightbox';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface VistoriaRFViewProps {
   item: VistoriaRF;
@@ -44,7 +46,34 @@ export default function VistoriaRFView({
   const [showApprovalForm, setShowApprovalForm] = useState<'approve' | 'reject' | null>(null);
   const [feedback, setFeedback] = useState('');
   const [localRejectedPhotos, setLocalRejectedPhotos] = useState<string[]>(item.rejectedPhotos || []);
+  const [photos, setPhotos] = useState<Record<string, string>>(item.photos || {});
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Carregar fotos da subcoleção (nuvem)
+  useEffect(() => {
+    if (item.id) {
+      const fetchPhotos = async () => {
+        setIsLoadingPhotos(true);
+        try {
+          const photoDataRef = collection(db, 'vistorias_rf', item.id!, 'photo_data');
+          const snapshot = await getDocs(photoDataRef);
+          
+          const photosMap: Record<string, string> = {};
+          snapshot.forEach(docSnap => {
+            photosMap[docSnap.id] = docSnap.data().data;
+          });
+
+          setPhotos(prev => ({ ...prev, ...photosMap }));
+        } catch (error) {
+          console.error("Erro ao carregar fotos da nuvem:", error);
+        } finally {
+          setIsLoadingPhotos(false);
+        }
+      };
+      fetchPhotos();
+    }
+  }, [item.id]);
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
@@ -393,19 +422,19 @@ export default function VistoriaRFView({
                     </span>
                   )}
                 </div>
-                {item.foto_fachada ? (
+                {photos.foto_fachada ? (
                   <div 
-                    onClick={() => setSelectedPhoto({ url: item.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
+                    onClick={() => setSelectedPhoto({ url: photos.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
                     className={`aspect-video rounded-2xl overflow-hidden border-2 shadow-md group relative cursor-pointer transition-all ${
                       isRejected('foto_fachada') ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-gray-100 dark:border-gray-800'
                     }`}
                   >
                     <img 
-                      src={item.foto_fachada} 
+                      src={photos.foto_fachada} 
                       alt="Fachada" 
                       className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
                       referrerPolicy="no-referrer"
-                      onClick={() => setLightbox({ isOpen: true, src: item.foto_fachada!, alt: 'Fachada' })}
+                      onClick={() => setLightbox({ isOpen: true, src: photos.foto_fachada!, alt: 'Fachada' })}
                     />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <span className="bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 dark:text-white shadow-lg flex items-center gap-2">
@@ -441,19 +470,19 @@ export default function VistoriaRFView({
                     </span>
                   )}
                 </div>
-                {item.foto_placa ? (
+                {photos.foto_placa ? (
                   <div 
-                    onClick={() => setSelectedPhoto({ url: item.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
+                    onClick={() => setSelectedPhoto({ url: photos.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
                     className={`aspect-video rounded-2xl overflow-hidden border-2 shadow-md group relative cursor-pointer transition-all ${
                       isRejected('foto_placa') ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-gray-100 dark:border-gray-800'
                     }`}
                   >
                     <img 
-                      src={item.foto_placa} 
+                      src={photos.foto_placa} 
                       alt="Placa" 
                       className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
                       referrerPolicy="no-referrer"
-                      onClick={() => setLightbox({ isOpen: true, src: item.foto_placa!, alt: 'Placa' })}
+                      onClick={() => setLightbox({ isOpen: true, src: photos.foto_placa!, alt: 'Placa' })}
                     />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <span className="bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full text-xs font-bold text-gray-900 dark:text-white shadow-lg flex items-center gap-2">
@@ -488,8 +517,8 @@ export default function VistoriaRFView({
               </h3>
               
               {VISTORIA_PHOTO_SECTIONS.map((section) => {
-                const uploadedPhotos = section.fields.filter(f => item.photos?.[f.id]);
-                if (uploadedPhotos.length === 0) return null;
+                const uploadedPhotos = section.fields.filter(f => photos[f.id]);
+                if (uploadedPhotos.length === 0 && !isLoadingPhotos) return null;
 
                 return (
                   <div key={section.title} className="space-y-4 border dark:border-gray-800 rounded-2xl overflow-hidden">
@@ -503,6 +532,7 @@ export default function VistoriaRFView({
                         <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
                           {uploadedPhotos.length} fotos
                         </span>
+                        {isLoadingPhotos && <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />}
                       </div>
                       {expandedSections[section.title] ? <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
                     </button>
@@ -517,13 +547,13 @@ export default function VistoriaRFView({
                         >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-900">
                             {section.fields.map((field) => {
-                              const photoData = item.photos?.[field.id];
+                              const photoData = photos[field.id];
                               if (!photoData) return null;
 
                               return (
                                 <div key={field.id} className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate" title={field.label}>
+                                <div className="flex items-start justify-between flex-wrap gap-2">
+                                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block flex-1 min-w-0" title={field.label}>
                                     {field.label}
                                   </label>
                                   {isRejected(field.id) && (
@@ -614,11 +644,11 @@ export default function VistoriaRFView({
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative max-w-5xl w-full flex flex-col gap-4"
             >
-              <div className="flex items-center justify-between text-white">
-                <h3 className="font-bold text-lg">{selectedPhoto.label}</h3>
+              <div className="flex items-start justify-between flex-wrap gap-4 text-white">
+                <h3 className="font-bold text-lg flex-1 min-w-0">{selectedPhoto.label}</h3>
                 <button 
                   onClick={() => setSelectedPhoto(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors shrink-0"
                 >
                   <X className="w-6 h-6" />
                 </button>

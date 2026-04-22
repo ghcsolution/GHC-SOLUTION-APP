@@ -5,16 +5,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { VISTORIA_PHOTO_SECTIONS } from '../constants/vistoria';
 import { useRef } from 'react';
 import { ImageLightbox } from './ImageLightbox';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface VistoriaRFFormProps {
   item: VistoriaRF | null;
   onClose: () => void;
   onSave: (item: Omit<VistoriaRF, 'id' | 'createdBy' | 'createdAt'>, stayOpen?: boolean) => void;
+  onSyncPhoto?: (vistoriaId: string, fieldId: string, base64: string) => Promise<void>;
   isSaving?: boolean;
   saveError?: string | null;
 }
 
-export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false, saveError = null }: VistoriaRFFormProps) {
+export default function VistoriaRFForm({ item, onClose, onSave, onSyncPhoto, isSaving = false, saveError = null }: VistoriaRFFormProps) {
   const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
     isOpen: false,
     src: '',
@@ -88,9 +91,12 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
 
   useEffect(() => {
     const draftKey = `vistoria_draft_${item?.id || 'new'}`;
-    // Only save if there's actual data to avoid overwriting with empty
-    if (formData.site || Object.keys(formData.photos || {}).length > 0 || formData.foto_fachada || formData.foto_placa) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
+    // Only save if there's actual data
+    if (formData.site || formData.detentora || formData.municipio) {
+      // Otimização crucial: Não salvamos as fotos (base64) no localStorage para evitar crash
+      const { photos, foto_fachada, foto_placa, ...textData } = formData;
+      localStorage.setItem(draftKey, JSON.stringify(textData));
+      
       setLastAutoSave(new Date());
       setShowAutoSaveToast(true);
       const timer = setTimeout(() => setShowAutoSaveToast(false), 2000);
@@ -127,6 +133,63 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
   };
 
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [photoPreviews, setPhotoPreviews] = useState<Record<string, string>>({});
+
+  // Cleanup ObjectURLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(photoPreviews).forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
+    };
+  }, [photoPreviews]);
+
+  // Carregar fotos da subcoleção se o item já existe
+  useEffect(() => {
+    if (item?.id) {
+      const fetchPhotos = async () => {
+        setLoadingPhotos(true);
+        try {
+          const photoDataRef = collection(db, 'vistorias_rf', item.id!, 'photo_data');
+          const snapshot = await getDocs(photoDataRef);
+          
+          const photosMap: Record<string, string> = {};
+          const previewsMap: Record<string, string> = {};
+          let fachada = formData.foto_fachada;
+          let placa = formData.foto_placa;
+
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data().data;
+            if (docSnap.id === 'foto_fachada') {
+              fachada = "CLOUD_SAVED";
+              previewsMap['foto_fachada'] = data;
+            } else if (docSnap.id === 'foto_placa') {
+              placa = "CLOUD_SAVED";
+              previewsMap['foto_placa'] = data;
+            } else {
+              photosMap[docSnap.id] = "CLOUD_SAVED";
+              previewsMap[docSnap.id] = data;
+            }
+          });
+
+          setPhotoPreviews(prev => ({ ...prev, ...previewsMap }));
+          setFormData(prev => ({
+            ...prev,
+            foto_fachada: fachada,
+            foto_placa: placa,
+            photos: { ...prev.photos, ...photosMap }
+          }));
+        } catch (error) {
+          console.error("Erro ao carregar fotos da nuvem:", error);
+        } finally {
+          setLoadingPhotos(false);
+        }
+      };
+      fetchPhotos();
+    }
+  }, [item?.id]);
+
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string, fieldId: string, label: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -172,23 +235,55 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Gerar preview leve imediatamente
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreviews(prev => {
+      // Liberar URL anterior se houver
+      if (prev[fieldId]?.startsWith('blob:')) URL.revokeObjectURL(prev[fieldId]);
+      return { ...prev, [fieldId]: previewUrl };
+    });
+
     setIsUploading(prev => ({ ...prev, [fieldId]: true }));
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string);
-      
-      if (fieldId === 'foto_fachada') {
-        setFormData(prev => ({ ...prev, foto_fachada: compressed }));
-      } else if (fieldId === 'foto_placa') {
-        setFormData(prev => ({ ...prev, foto_placa: compressed }));
-      } else {
-        setFormData(prev => ({ 
-          ...prev, 
-          photos: { ...(prev.photos || {}), [fieldId]: compressed } 
-        }));
+      try {
+        const compressed = await compressImage(reader.result as string);
+        
+        // Sincronização automática se já houver um ID (Item salvo ou editado)
+        if (item?.id && onSyncPhoto) {
+          await onSyncPhoto(item.id, fieldId, compressed);
+          
+          // CRUCIAL PARA MEMÓRIA: Após sincronizar, removemos o Base64 do estado principal
+          // Deixamos apenas o preview leve (blob) e um marcador texto
+          if (fieldId === 'foto_fachada') {
+            setFormData(prev => ({ ...prev, foto_fachada: "CLOUD_SAVED" }));
+          } else if (fieldId === 'foto_placa') {
+            setFormData(prev => ({ ...prev, foto_placa: "CLOUD_SAVED" }));
+          } else {
+            setFormData(prev => ({ 
+              ...prev, 
+              photos: { ...(prev.photos || {}), [fieldId]: "CLOUD_SAVED" } 
+            }));
+          }
+        } else {
+          // Se for item novo sem ID, mantemos temporariamente o Base64 para o primeiro save
+          if (fieldId === 'foto_fachada') {
+            setFormData(prev => ({ ...prev, foto_fachada: compressed }));
+          } else if (fieldId === 'foto_placa') {
+            setFormData(prev => ({ ...prev, foto_placa: compressed }));
+          } else {
+            setFormData(prev => ({ 
+              ...prev, 
+              photos: { ...(prev.photos || {}), [fieldId]: compressed } 
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Erro no processamento da imagem:", error);
+        alert("Erro ao processar imagem. Tente novamente.");
+      } finally {
+        setIsUploading(prev => ({ ...prev, [fieldId]: false }));
       }
-      
-      setIsUploading(prev => ({ ...prev, [fieldId]: false }));
     };
     reader.readAsDataURL(file);
   };
@@ -480,25 +575,25 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                   ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                   : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
               }`}>
-                {formData.foto_fachada ? (
+                {photoPreviews.foto_fachada ? (
                   <>
                     <img 
-                      src={formData.foto_fachada} 
+                      src={photoPreviews.foto_fachada} 
                       alt="Fachada" 
                       className="w-full h-full object-cover cursor-pointer" 
-                      onClick={() => setLightbox({ isOpen: true, src: formData.foto_fachada!, alt: 'Fachada' })}
+                      onClick={() => setLightbox({ isOpen: true, src: photoPreviews.foto_fachada!, alt: 'Fachada' })}
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
-                        onClick={() => setSelectedPhoto({ url: formData.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
+                        onClick={() => setSelectedPhoto({ url: photoPreviews.foto_fachada!, fieldId: 'foto_fachada', label: 'Fachada' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setLightbox({ isOpen: true, src: formData.foto_fachada!, alt: 'Fachada' })}
+                        onClick={() => setLightbox({ isOpen: true, src: photoPreviews.foto_fachada!, alt: 'Fachada' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
                         title="Abrir em nova janela"
                       >
@@ -510,7 +605,15 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                       </label>
                       <button 
                         type="button"
-                        onClick={() => setFormData({...formData, foto_fachada: ''})}
+                        onClick={() => {
+                          setFormData({...formData, foto_fachada: ''});
+                          setPhotoPreviews(prev => {
+                            if (prev.foto_fachada?.startsWith('blob:')) URL.revokeObjectURL(prev.foto_fachada);
+                            const next = { ...prev };
+                            delete next.foto_fachada;
+                            return next;
+                          });
+                        }}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-red-600 dark:text-red-400"
                       >
                         <X className="w-6 h-6" />
@@ -544,25 +647,25 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                   ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                   : 'border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'
               }`}>
-                {formData.foto_placa ? (
+                {photoPreviews.foto_placa ? (
                   <>
                     <img 
-                      src={formData.foto_placa} 
+                      src={photoPreviews.foto_placa} 
                       alt="Placa" 
                       className="w-full h-full object-cover cursor-pointer" 
-                      onClick={() => setLightbox({ isOpen: true, src: formData.foto_placa!, alt: 'Placa' })}
+                      onClick={() => setLightbox({ isOpen: true, src: photoPreviews.foto_placa!, alt: 'Placa' })}
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button 
                         type="button"
-                        onClick={() => setSelectedPhoto({ url: formData.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
+                        onClick={() => setSelectedPhoto({ url: photoPreviews.foto_placa!, fieldId: 'foto_placa', label: 'Placa' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                       >
                         <Maximize2 className="w-6 h-6" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setLightbox({ isOpen: true, src: formData.foto_placa!, alt: 'Placa' })}
+                        onClick={() => setLightbox({ isOpen: true, src: photoPreviews.foto_placa!, alt: 'Placa' })}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
                         title="Abrir em nova janela"
                       >
@@ -574,7 +677,15 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                       </label>
                       <button 
                         type="button"
-                        onClick={() => setFormData({...formData, foto_placa: ''})}
+                        onClick={() => {
+                          setFormData({...formData, foto_placa: ''});
+                          setPhotoPreviews(prev => {
+                            if (prev.foto_placa?.startsWith('blob:')) URL.revokeObjectURL(prev.foto_placa);
+                            const next = { ...prev };
+                            delete next.foto_placa;
+                            return next;
+                          });
+                        }}
                         className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:scale-110 transition-transform text-red-600 dark:text-red-400"
                       >
                         <X className="w-6 h-6" />
@@ -631,8 +742,8 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-900">
                           {section.fields.map((field) => (
                             <div key={field.id} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate" title={field.label}>
+                              <div className="flex items-start justify-between flex-wrap gap-2">
+                                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block flex-1 min-w-0" title={field.label}>
                                   {field.label}
                                 </label>
                                 {isRejected(field.id) && (
@@ -651,25 +762,25 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                                     ? 'border-red-200 dark:border-red-900/50 border-dashed bg-red-50/30 dark:bg-red-900/10' 
                                     : 'border-gray-200 dark:border-gray-700 border-dashed hover:border-indigo-300 dark:hover:border-indigo-500'
                               }`}>
-                                {formData.photos?.[field.id] ? (
+                                {photoPreviews[field.id] ? (
                                   <>
                                     <img 
-                                      src={formData.photos[field.id]} 
+                                      src={photoPreviews[field.id]} 
                                       alt={field.label} 
                                       className="w-full h-full object-cover cursor-pointer" 
-                                      onClick={() => setLightbox({ isOpen: true, src: formData.photos![field.id], alt: field.label })}
+                                      onClick={() => setLightbox({ isOpen: true, src: photoPreviews[field.id], alt: field.label })}
                                     />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                       <button 
                                         type="button"
-                                        onClick={() => setSelectedPhoto({ url: formData.photos![field.id], fieldId: field.id, label: field.label })}
+                                        onClick={() => setSelectedPhoto({ url: photoPreviews[field.id], fieldId: field.id, label: field.label })}
                                         className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400"
                                       >
                                         <Maximize2 className="w-4 h-4" />
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => setLightbox({ isOpen: true, src: formData.photos![field.id], alt: field.label })}
+                                        onClick={() => setLightbox({ isOpen: true, src: photoPreviews[field.id], alt: field.label })}
                                         className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform text-gray-600 dark:text-gray-400"
                                         title="Abrir em nova janela"
                                       >
@@ -685,6 +796,13 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
                                           const newPhotos = { ...formData.photos };
                                           delete newPhotos[field.id];
                                           setFormData({ ...formData, photos: newPhotos });
+                                          // Cleanup preview
+                                          setPhotoPreviews(prev => {
+                                            if (prev[field.id]?.startsWith('blob:')) URL.revokeObjectURL(prev[field.id]);
+                                            const next = { ...prev };
+                                            delete next[field.id];
+                                            return next;
+                                          });
                                         }}
                                         className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:scale-110 transition-transform text-red-600 dark:text-red-400"
                                       >
@@ -804,11 +922,11 @@ export default function VistoriaRFForm({ item, onClose, onSave, isSaving = false
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative max-w-5xl w-full flex flex-col gap-4"
             >
-              <div className="flex items-center justify-between text-white">
-                <h3 className="font-bold text-lg">{selectedPhoto.label}</h3>
+              <div className="flex items-start justify-between flex-wrap gap-4 text-white">
+                <h3 className="font-bold text-lg flex-1 min-w-0">{selectedPhoto.label}</h3>
                 <button 
                   onClick={() => setSelectedPhoto(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors shrink-0"
                 >
                   <X className="w-6 h-6" />
                 </button>

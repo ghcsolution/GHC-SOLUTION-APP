@@ -517,7 +517,7 @@ export default function VistoriaApprovalTab({
                               <div className={`shrink-0 ${selectedFields.includes(field.id) ? 'text-indigo-600' : 'text-gray-300 group-hover:text-gray-400'}`}>
                                 {selectedFields.includes(field.id) ? <CheckSquare className="w-5 h-5 shadow-sm" /> : <Square className="w-5 h-5" />}
                               </div>
-                              <span className={`text-xs font-bold ${
+                              <span className={`text-xs font-bold flex-1 min-w-0 ${
                                 selectedFields.includes(field.id) ? 'text-indigo-900 dark:text-indigo-200' : 'text-gray-600 dark:text-gray-400'
                               }`}>
                                 {field.label}

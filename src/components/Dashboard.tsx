@@ -81,6 +81,7 @@ interface DashboardProps {
 
 export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggleDarkMode }: DashboardProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [statsItems, setStatsItems] = useState<InventoryItem[]>([]);
   const [vistorias, setVistorias] = useState<VistoriaRF[]>([]);
   const [materials, setMaterials] = useState<MasterMaterial[]>([]);
   const [itemsLimit, setItemsLimit] = useState(30);
@@ -160,10 +161,21 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
       }
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'materias', user));
 
+    // Monitoramento de TODOS os itens do inventário para estatísticas em tempo real
+    const qStats = query(collection(db, 'inventory'));
+    const unsubscribeStats = onSnapshot(qStats, (snapshot) => {
+      const inventoryData: InventoryItem[] = [];
+      snapshot.forEach((doc) => {
+        inventoryData.push({ id: doc.id, ...doc.data() } as InventoryItem);
+      });
+      setStatsItems(inventoryData);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory_stats', user));
+
     return () => {
       unsubscribe();
       unsubscribeVistoria();
       unsubscribeMaterials();
+      unsubscribeStats();
     };
   }, [user?.uid, itemsLimit, vistoriasLimit]);
 
@@ -722,7 +734,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
     }
   };
 
-  const openSites = items.filter(i => !i.data_saida);
+  const openSites = statsItems.filter(i => !i.data_saida);
   const openSitesDays = openSites.map(item => {
     const start = new Date(item.data_entrada);
     const end = new Date();
@@ -1084,7 +1096,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                       <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg uppercase tracking-wider">Pendente</span>
                     </div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites em Aberto</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{items.filter(i => !i.data_saida).length}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{statsItems.filter(i => !i.data_saida).length}</p>
                   </div>
 
                   <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -1095,7 +1107,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                       <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-lg uppercase tracking-wider">Concluído</span>
                     </div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sites Finalizados</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{items.filter(i => i.data_saida).length}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{statsItems.filter(i => i.data_saida).length}</p>
                   </div>
                 </div>
 
@@ -1108,8 +1120,8 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Em Aberto', value: items.filter(i => !i.data_saida).length },
-                              { name: 'Finalizados', value: items.filter(i => i.data_saida).length }
+                              { name: 'Em Aberto', value: statsItems.filter(i => !i.data_saida).length },
+                              { name: 'Finalizados', value: statsItems.filter(i => i.data_saida).length }
                             ]}
                             cx="50%"
                             cy="50%"
@@ -1187,7 +1199,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                           <Pie
                             data={(() => {
                               const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
-                              const dataset = items.filter(i => {
+                              const dataset = statsItems.filter(i => {
                                 if (typeChartFilter === 'open') return !i.data_saida;
                                 if (typeChartFilter === 'finalized') return !!i.data_saida;
                                 return true;
@@ -1214,7 +1226,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                                 'Não Definido': '#8b5cf6'
                               };
                               const counts: Record<string, number> = { 'TX': 0, 'RF': 0, 'Não Definido': 0 };
-                              const dataset = items.filter(i => {
+                              const dataset = statsItems.filter(i => {
                                 if (typeChartFilter === 'open') return !i.data_saida;
                                 if (typeChartFilter === 'finalized') return !!i.data_saida;
                                 return true;
@@ -1301,7 +1313,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                               const counts: Record<string, number> = {};
                               categories.forEach(cat => counts[cat] = 0);
                               
-                              const dataset = items.filter(i => {
+                              const dataset = statsItems.filter(i => {
                                 if (motiveChartFilter === 'open') return !i.data_saida;
                                 if (motiveChartFilter === 'finalized') return !!i.data_saida;
                                 return true;
@@ -1335,7 +1347,7 @@ export default function Dashboard({ user, profile, onLogout, isDarkMode, onToggl
                               const counts: Record<string, number> = {};
                               categories.forEach(cat => counts[cat] = 0);
 
-                              const dataset = items.filter(i => {
+                              const dataset = statsItems.filter(i => {
                                 if (motiveChartFilter === 'open') return !i.data_saida;
                                 if (motiveChartFilter === 'finalized') return !!i.data_saida;
                                 return true;
